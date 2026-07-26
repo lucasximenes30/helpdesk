@@ -3,13 +3,9 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { setSessionCookie } from "@/lib/auth";
 import { UserSession } from "@/types/rbac.types";
-import { ensureInitialAdmin } from "@/services/auth/seed.service";
 
 export async function POST(request: Request) {
   try {
-    // Garante que se for o primeiro login do sistema e a tabela estiver vazia, o admin é semeado
-    await ensureInitialAdmin();
-
     const body = await request.json();
     const { email, password } = body;
 

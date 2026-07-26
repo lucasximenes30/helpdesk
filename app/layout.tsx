@@ -6,11 +6,13 @@ import { AppProviders } from "@/providers/app-providers";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "CG Construções HelpDesk - Sistema Profissional de Atendimento",
+  title: "CG Construções HelpDesk Pro — Sistema Profissional de Atendimento TI",
   description:
-    "Sistema modular e White Label para gestão de chamados, técnicos e atendimento (HelpDesk Pro).",
+    "Sistema corporativo modular e White Label para gestão de chamados, técnicos, BI e atendimento da CG Construções (HelpDesk Pro).",
   icons: {
     icon: "/cg-logo.png",
+    shortcut: "/cg-logo.png",
+    apple: "/cg-logo.png",
   },
 };
 
