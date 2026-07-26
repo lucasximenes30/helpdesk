@@ -8,6 +8,7 @@ export type DashboardPeriod =
   | "LAST_30_DAYS"
   | "THIS_MONTH"
   | "THIS_YEAR"
+  | "MONTHLY_SPECIFIC"
   | "CUSTOM";
 
 export interface DashboardFilterParams {
@@ -17,6 +18,7 @@ export interface DashboardFilterParams {
   sectorId?: string;
   serviceId?: string;
   technicianId?: string;
+  monthYear?: string; // "07-2026" format for monthly filtering
 }
 
 export interface ChartDataPoint {
@@ -45,7 +47,16 @@ export interface DashboardStatsResult {
     scheduled: { value: number };
     avgTimeMinutes: { value: number; formatted: string };
     avgTimePerTech: { value: number; formatted: string };
-    activeTechCount: { value: number };
+    topTechHighlight: {
+      name: string;
+      completedCount: number;
+      avgTimeFormatted: string;
+    } | null;
+    topAvgTimeTechs: Array<{
+      name: string;
+      avgTimeMinutes: number;
+      avgTimeFormatted: string;
+    }>;
   };
   rankings: {
     topTechnicians: Array<{
@@ -69,6 +80,7 @@ export interface DashboardStatsResult {
       count: number;
       percentage: number;
     }>;
+    servicesBySector: Record<string, Array<{ name: string; count: number }>>;
   };
   charts: {
     byTechnician: ChartDataPoint[];
@@ -82,6 +94,7 @@ export interface DashboardStatsResult {
     byDay: TimeSeriesPoint[];
     byWeek: TimeSeriesPoint[];
     byMonth: TimeSeriesPoint[];
+    servicesBySector: Record<string, Array<{ name: string; count: number }>>;
   };
   periodRange: {
     start: string;
@@ -132,6 +145,14 @@ function getPeriodRange(params: DashboardFilterParams): {
     start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
     end = new Date(now);
     label = "Ano atual";
+  } else if (params.period === "MONTHLY_SPECIFIC" && params.monthYear) {
+    const [mm, yyyy] = params.monthYear.split("-");
+    const month = parseInt(mm, 10) - 1;
+    const year = parseInt(yyyy, 10);
+    start = new Date(year, month, 1, 0, 0, 0, 0);
+    end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+    const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    label = `${monthNames[month]} ${year}`;
   } else if (params.period === "CUSTOM" && params.startDate && params.endDate) {
     start = new Date(params.startDate);
     end = new Date(params.endDate);
@@ -160,24 +181,46 @@ function formatMinutes(minutes: number): string {
 export async function getDashboardStats(
   params: DashboardFilterParams = {}
 ): Promise<DashboardStatsResult> {
+  // If monthYear is provided without a period, set MONTHLY_SPECIFIC
+  if (params.monthYear && !params.period) {
+    params.period = "MONTHLY_SPECIFIC";
+  }
+
   const range = getPeriodRange(params);
 
   // Filtro base dos chamados no período atual
   const whereCurrent: Prisma.TicketWhereInput = {
     deletedAt: null,
-    createdAt: {
-      gte: range.start,
-      lte: range.end,
-    },
+    ...(params.monthYear
+      ? { ticketMonthYear: params.monthYear }
+      : {
+          ticketDate: {
+            gte: range.start,
+            lte: range.end,
+          },
+        }),
   };
 
   // Filtro base dos chamados no período anterior (para KPI comparativo)
   const wherePrevious: Prisma.TicketWhereInput = {
     deletedAt: null,
-    createdAt: {
-      gte: range.prevStart,
-      lte: range.prevEnd,
-    },
+    ...(params.monthYear
+      ? {
+          // For monthly, compare with previous month
+          ticketMonthYear: (() => {
+            const [mm, yyyy] = params.monthYear!.split("-");
+            let prevMonth = parseInt(mm, 10) - 1;
+            let prevYear = parseInt(yyyy, 10);
+            if (prevMonth < 1) { prevMonth = 12; prevYear--; }
+            return `${String(prevMonth).padStart(2, "0")}-${prevYear}`;
+          })(),
+        }
+      : {
+          ticketDate: {
+            gte: range.prevStart,
+            lte: range.prevEnd,
+          },
+        }),
   };
 
   if (params.sectorId) {
@@ -292,6 +335,9 @@ export async function getDashboardStats(
     EMAIL: 0,
   };
 
+  // Serviços por Setor map
+  const sectorServiceMap: Record<string, Record<string, { name: string; count: number }>> = {};
+
   currentTickets.forEach((t) => {
     // Tech
     const techKey = t.technicianId || "unassigned";
@@ -330,6 +376,19 @@ export async function getDashboardStats(
     // Origin
     const orig = t.origin || "MANUAL";
     originMap[orig] = (originMap[orig] || 0) + 1;
+
+    // Services by Sector
+    if (t.sectorId && t.serviceId) {
+      const sectorName = t.sector?.name || t.sectorId;
+      const serviceName = t.service?.name || t.serviceId;
+      if (!sectorServiceMap[sectorName]) {
+        sectorServiceMap[sectorName] = {};
+      }
+      if (!sectorServiceMap[sectorName][serviceName]) {
+        sectorServiceMap[sectorName][serviceName] = { name: serviceName, count: 0 };
+      }
+      sectorServiceMap[sectorName][serviceName].count += 1;
+    }
   });
 
   // Formatar dados dos gráficos
@@ -383,7 +442,7 @@ export async function getDashboardStats(
       name: data.name,
       value: Math.round(data.totalTime / data.completedCount),
     }))
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => a.value - b.value); // ASC: fastest first
 
   const avgTimeByService: ChartDataPoint[] = Object.entries(serviceMap)
     .filter(([_, data]) => data.completedCount > 0)
@@ -403,13 +462,21 @@ export async function getDashboardStats(
     }))
     .sort((a, b) => b.value - a.value);
 
+  // Serviços por Setor — top 5 por setor
+  const servicesBySector: Record<string, Array<{ name: string; count: number }>> = {};
+  for (const [sectorName, servicesMap] of Object.entries(sectorServiceMap)) {
+    servicesBySector[sectorName] = Object.values(servicesMap)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }
+
   // 3. SÉRIES TEMPORAIS (Dia, Semana, Mês)
   const byDayMap: Record<string, { label: string; total: number; concluidos: number; emAtendimento: number }> = {};
   const byWeekMap: Record<string, { label: string; total: number; concluidos: number; emAtendimento: number }> = {};
   const byMonthMap: Record<string, { label: string; total: number; concluidos: number; emAtendimento: number }> = {};
 
   currentTickets.forEach((t) => {
-    const d = new Date(t.createdAt);
+    const d = new Date(t.ticketDate || t.createdAt);
     const dateStr = d.toISOString().slice(0, 10);
     const dayLabel = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 
@@ -493,6 +560,23 @@ export async function getDashboardStats(
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
+  // Técnico Destaque — o que mais resolveu chamados no período
+  const topTech = topTechnicians.length > 0 ? topTechnicians[0] : null;
+  const topTechHighlight = topTech && topTech.count > 0
+    ? {
+        name: topTech.name,
+        completedCount: topTech.count,
+        avgTimeFormatted: formatMinutes(topTech.avgTimeMinutes),
+      }
+    : null;
+
+  // Top 3 tempos médios por técnico (os mais rápidos)
+  const topAvgTimeTechs = avgTimeByTechnician.slice(0, 3).map((t) => ({
+    name: t.name,
+    avgTimeMinutes: t.value,
+    avgTimeFormatted: formatMinutes(t.value),
+  }));
+
   return {
     kpis: {
       totalTickets: {
@@ -516,12 +600,14 @@ export async function getDashboardStats(
         value: avgTimePerTechVal,
         formatted: formatMinutes(avgTimePerTechVal),
       },
-      activeTechCount: { value: activeTechs },
+      topTechHighlight,
+      topAvgTimeTechs,
     },
     rankings: {
       topTechnicians,
       topServices,
       topSectors,
+      servicesBySector,
     },
     charts: {
       byTechnician,
@@ -535,6 +621,7 @@ export async function getDashboardStats(
       byDay,
       byWeek,
       byMonth,
+      servicesBySector,
     },
     periodRange: {
       start: range.start.toISOString(),

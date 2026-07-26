@@ -23,6 +23,10 @@ import {
   Layers,
   Sparkles,
   Send,
+  Wrench,
+  Upload,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,17 +34,23 @@ import { Badge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/common/SectionCard";
 import { useWhiteLabel } from "@/hooks/useWhiteLabel";
 import { CorporateSettingsDTO } from "@/services/settings/settings.service";
+import { CsvImportWizard } from "@/modules/import/CsvImportWizard";
 
 export function CorporateSettingsClient() {
   const { config, updateConfig } = useWhiteLabel();
   const [activeTab, setActiveTab] = useState<
-    "EMPRESA" | "APARENCIA" | "USUARIOS" | "CHAMADOS" | "RELATORIOS" | "AUDITORIA" | "INTEGRACOES"
+    "EMPRESA" | "APARENCIA" | "USUARIOS" | "CHAMADOS" | "RELATORIOS" | "AUDITORIA" | "INTEGRACOES" | "FERRAMENTAS"
   >("EMPRESA");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"IDLE" | "SUCCESS" | "ERROR">("IDLE");
   const [errorMessage, setErrorMessage] = useState("");
+
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const [form, setForm] = useState<CorporateSettingsDTO>({
     companyId: "cg-construcoes-001",
@@ -98,21 +108,19 @@ export function CorporateSettingsClient() {
       }
     }
     loadSettings();
-  }, [updateConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (key: keyof CorporateSettingsDTO, value: any) => {
-    setForm((prev) => {
-      const updated = { ...prev, [key]: value };
-      // Se for alteração de aparência, reflete em tempo real no White Label
-      if (key === "systemName" || key === "primaryColor" || key === "favicon") {
-        updateConfig({
-          systemName: updated.systemName,
-          logo: updated.favicon || "/cg-logo.png",
-          primaryColor: updated.primaryColor,
-        });
-      }
-      return updated;
-    });
+    setForm((prev) => ({ ...prev, [key]: value }));
+    // Se for alteração de aparência, reflete em tempo real no White Label
+    if (key === "systemName") {
+      updateConfig({ systemName: value });
+    } else if (key === "primaryColor") {
+      updateConfig({ primaryColor: value });
+    } else if (key === "favicon") {
+      updateConfig({ logo: value || "/cg-logo.png" });
+    }
     setSaveStatus("IDLE");
   };
 
@@ -192,7 +200,31 @@ export function CorporateSettingsClient() {
     { id: "RELATORIOS", label: "Relatórios & PDF", icon: Printer },
     { id: "AUDITORIA", label: "Auditoria & Logs", icon: ShieldCheck },
     { id: "INTEGRACOES", label: "Integrações", icon: Webhook },
+    { id: "FERRAMENTAS", label: "Ferramentas", icon: Wrench },
   ] as const;
+
+  const handleResetDatabase = async () => {
+    if (resetConfirmText !== "RESETAR") return;
+    setResetting(true);
+    try {
+      const res = await fetch("/api/reset", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmText: "RESETAR" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao resetar banco de dados");
+      }
+      alert(data.message || "Banco de dados resetado com sucesso.");
+      setResetModalOpen(false);
+      setResetConfirmText("");
+    } catch (e: any) {
+      alert(e.message || "Erro ao resetar banco de dados");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -884,7 +916,140 @@ export function CorporateSettingsClient() {
             </div>
           </SectionCard>
         )}
+
+        {/* 8. ABA FERRAMENTAS — IMPORTAÇÃO CSV & RESET DE BANCO */}
+        {activeTab === "FERRAMENTAS" && (
+          <SectionCard
+            title="Ferramentas & Manutenção do Banco de Dados"
+            description="Importador inteligente de planilhas antigas e reinicialização segura de dados operacionais"
+          >
+            <div className="space-y-6">
+              {/* Importador Inteligente de CSV */}
+              <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-3 rounded-xl bg-primary/10 text-primary">
+                      <Upload className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-foreground">
+                        Importador Inteligente de Histórico CSV
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                        Assistente em 5 etapas para importação de planilhas antigas da empresa (ex: Controle de Chamados). Mapeia colunas, prevê duplicidades, cria novos solicitantes e insere os registros preservando técnicos e serviços já cadastrados no banco.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setImportWizardOpen(true)}
+                    className="shrink-0 font-semibold shadow-sm text-xs"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Abrir Importador CSV
+                  </Button>
+                </div>
+              </div>
+
+              {/* Reset Operacional do Banco */}
+              <div className="p-5 rounded-xl border border-red-500/30 bg-red-500/5 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-3 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
+                      <Trash2 className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-foreground">
+                          Reset de Dados Operacionais
+                        </h3>
+                        <Badge className="bg-red-500/15 text-red-600 border-red-500/30 text-[10px]">
+                          Ação Crítica
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                        Exclui todos os chamados, comentários, anexos e histórico operacional do sistema, mantendo a estrutura institucional intacta (Empresa, Setores, Serviços, Usuários e RBAC).
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setResetModalOpen(true)}
+                    className="shrink-0 font-semibold shadow-sm text-xs"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Resetar Banco...
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </SectionCard>
+        )}
       </div>
+
+      {/* MODAL DO IMPORTADOR CSV */}
+      <CsvImportWizard
+        open={importWizardOpen}
+        onClose={() => setImportWizardOpen(false)}
+      />
+
+      {/* MODAL DE CONFIRMAÇÃO DE RESET DO BANCO */}
+      {resetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">
+                  Confirmar Reset do Banco
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Todos os chamados e dados operacionais serão excluídos.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-muted/50 border border-border text-xs text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground">Registros que serão preservados:</p>
+              <p>Empresa, Configurações, Setores, Serviços, Usuários, Cargos e Tema.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground">
+                Digite <span className="font-mono font-bold text-red-500">RESETAR</span> para confirmar:
+              </label>
+              <Input
+                value={resetConfirmText}
+                onChange={(e) => setResetConfirmText(e.target.value)}
+                placeholder="RESETAR"
+                className="font-mono text-center tracking-widest uppercase font-bold"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setResetModalOpen(false);
+                  setResetConfirmText("");
+                }}
+                disabled={resetting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={resetConfirmText !== "RESETAR" || resetting}
+                onClick={handleResetDatabase}
+                className="font-semibold"
+              >
+                {resetting ? "Resetando..." : "Confirmar Reset"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

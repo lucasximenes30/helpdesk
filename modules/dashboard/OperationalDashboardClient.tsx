@@ -21,9 +21,11 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { DashboardSkeleton } from "./DashboardSkeleton";
+import { MonthYearSelector } from "@/components/common/MonthYearSelector";
 
 export function OperationalDashboardClient() {
   const [loading, setLoading] = useState(true);
+  const [monthYear, setMonthYear] = useState<string>("");
   const [tickets, setTickets] = useState<any[]>([]);
   const [stats, setStats] = useState({
     inProgress: 0,
@@ -35,7 +37,19 @@ export function OperationalDashboardClient() {
   const loadOperationalData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/tickets?limit=50&sortBy=createdAt&sortOrder=desc");
+      const params = new URLSearchParams();
+      params.set("limit", "100");
+      params.set("sortBy", "createdAt");
+      params.set("sortOrder", "desc");
+      if (monthYear && monthYear !== "ALL") {
+        params.set("monthYear", monthYear);
+      } else if (monthYear === "ALL") {
+        const year = new Date().getFullYear();
+        params.set("startDate", `${year}-01-01`);
+        params.set("endDate", `${year}-12-31`);
+      }
+
+      const res = await fetch(`/api/tickets?${params.toString()}`);
       if (res.ok) {
         const json = await res.json();
         const list = json.data || json.tickets || [];
@@ -68,7 +82,7 @@ export function OperationalDashboardClient() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [monthYear]);
 
   useEffect(() => {
     loadOperationalData();
@@ -145,7 +159,13 @@ export function OperationalDashboardClient() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <MonthYearSelector
+            value={monthYear || "ALL"}
+            onChange={(my) => setMonthYear(my === "ALL" ? "ALL" : my)}
+            includeAllYear={true}
+          />
+
           <Button
             variant="outline"
             size="sm"

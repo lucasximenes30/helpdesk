@@ -9,11 +9,11 @@ export const metadata: Metadata = {
   title: "CG Construções HelpDesk Pro — Sistema Profissional de Atendimento TI",
   description:
     "Sistema corporativo modular e White Label para gestão de chamados, técnicos, BI e atendimento da CG Construções (HelpDesk Pro).",
-  icons: {
-    icon: "/cg-logo.png",
-    shortcut: "/cg-logo.png",
-    apple: "/cg-logo.png",
-  },
+  icons: [
+    { rel: "icon", url: "/cg-logo.png" },
+    { rel: "shortcut icon", url: "/cg-logo.png" },
+    { rel: "apple-touch-icon", url: "/cg-logo.png" },
+  ],
 };
 
 export default function RootLayout({

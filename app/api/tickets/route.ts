@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const isArchived = searchParams.get("isArchived") === "true";
     const startDate = searchParams.get("startDate") || undefined;
     const endDate = searchParams.get("endDate") || undefined;
+    const monthYear = searchParams.get("monthYear") || undefined;
     const sortBy = (searchParams.get("sortBy") as any) || "ticketDate";
     const sortOrder = (searchParams.get("sortOrder") as "asc" | "desc") || "desc";
 
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
       isArchived,
       startDate,
       endDate,
+      monthYear,
       sortBy,
       sortOrder,
     });

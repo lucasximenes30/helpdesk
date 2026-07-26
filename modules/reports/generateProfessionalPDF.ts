@@ -74,7 +74,25 @@ export async function generateProfessionalPDF({
   let currentY = 14;
 
   if (logoData) {
-    doc.addImage(logoData, "PNG", startX, currentY, 26, 12, undefined, "FAST");
+    // Maintain logo aspect ratio — calculate dimensions from image
+    const maxLogoH = 12;
+    const maxLogoW = 30;
+    try {
+      const img = new Image();
+      img.src = logoData;
+      const ratio = img.naturalWidth && img.naturalHeight
+        ? img.naturalWidth / img.naturalHeight
+        : 2.2; // fallback ratio
+      let logoW = maxLogoH * ratio;
+      let logoH = maxLogoH;
+      if (logoW > maxLogoW) {
+        logoW = maxLogoW;
+        logoH = maxLogoW / ratio;
+      }
+      doc.addImage(logoData, "PNG", startX, currentY, logoW, logoH, undefined, "FAST");
+    } catch {
+      doc.addImage(logoData, "PNG", startX, currentY, 26, 12, undefined, "FAST");
+    }
   }
 
   doc.setFont("helvetica", "bold");

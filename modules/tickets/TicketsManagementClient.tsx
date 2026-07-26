@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { TicketModal } from "./TicketModal";
 import { AssignTechnicianModal, ChangeStatusModal } from "./QuickActionModals";
+import { MonthYearSelector } from "@/components/common/MonthYearSelector";
 
 export interface TicketRow {
   id: string;
@@ -71,6 +72,7 @@ export function TicketsManagementClient() {
   const [technicianFilter, setTechnicianFilter] = useState<string>("ALL");
   const [originFilter, setOriginFilter] = useState<string>("ALL");
   const [isArchived, setIsArchived] = useState(false);
+  const [monthYear, setMonthYear] = useState<string>("");
   const [sortBy, setSortBy] = useState<"ticketDate" | "totalTimeMinutes" | "requester" | "service">("ticketDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -143,6 +145,7 @@ export function TicketsManagementClient() {
       if (technicianFilter !== "ALL") params.set("technicianId", technicianFilter);
       if (originFilter !== "ALL") params.set("origin", originFilter);
       params.set("isArchived", String(isArchived));
+      if (monthYear) params.set("monthYear", monthYear);
 
       const res = await fetch(`/api/tickets?${params.toString()}`);
       if (res.ok) {
@@ -168,6 +171,7 @@ export function TicketsManagementClient() {
     technicianFilter,
     originFilter,
     isArchived,
+    monthYear,
   ]);
 
   useEffect(() => {
@@ -570,6 +574,20 @@ export function TicketsManagementClient() {
       {/* Barra de Pesquisa, Filtros Rápidos e Ordenação */}
       <Card className="border border-border/80 bg-card/40">
         <CardContent className="p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">Mês de Referência:</span>
+              <MonthYearSelector
+                value={monthYear || "ALL"}
+                onChange={(my) => {
+                  setMonthYear(my === "ALL" ? "" : my);
+                  setPage(1);
+                }}
+                includeAllYear={true}
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
             {/* Campo Pesquisa Combinada */}
             <div className="md:col-span-2 relative">

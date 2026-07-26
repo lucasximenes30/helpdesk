@@ -35,12 +35,14 @@ import {
   ReportMode,
 } from "./ExportPDFModal";
 import { generateProfessionalPDF } from "./generateProfessionalPDF";
+import { MonthYearSelector } from "@/components/common/MonthYearSelector";
 
 const STORAGE_KEY = "cg_helpdesk_dashboard_widgets_v1";
 
 export function ReportsClient() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<string>("LAST_30_DAYS");
+  const [monthYear, setMonthYear] = useState<string>("");
   const [reportMode, setReportMode] = useState<ReportMode>("EXECUTIVO");
   const [stats, setStats] = useState<any>(null);
   const [widgets, setWidgets] = useState<DashboardWidgetConfig[]>(
@@ -50,23 +52,48 @@ export function ReportsClient() {
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setWidgets(parsed);
+    async function loadLayouts() {
+      try {
+        const res = await fetch("/api/report-layouts");
+        if (res.ok) {
+          const layouts = await res.json();
+          const defaultLayout = layouts.find((l: any) => l.isDefault) || layouts[0];
+          if (defaultLayout && defaultLayout.config && Array.isArray(defaultLayout.config)) {
+            setWidgets(defaultLayout.config);
+            return;
+          }
         }
+      } catch (e) {
+        console.error("Erro ao carregar layouts do banco:", e);
       }
-    } catch (e) {
-      console.error("Erro ao carregar widgets do localStorage", e);
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setWidgets(parsed);
+          }
+        }
+      } catch (e) {
+        console.error("Erro ao carregar widgets do localStorage", e);
+      }
     }
+    loadLayouts();
   }, []);
 
-  const saveWidgets = (updated: DashboardWidgetConfig[]) => {
+  const saveWidgets = async (updated: DashboardWidgetConfig[]) => {
     setWidgets(updated);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      await fetch("/api/report-layouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `Custom Layout (${new Date().toLocaleDateString("pt-BR")})`,
+          config: updated,
+          isDefault: true,
+        }),
+      });
     } catch (e) {
       console.error(e);
     }
@@ -79,7 +106,13 @@ export function ReportsClient() {
   const loadStats = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/dashboard/stats?period=${period}`);
+      const params = new URLSearchParams();
+      if (monthYear) {
+        params.set("monthYear", monthYear);
+      } else {
+        params.set("period", period);
+      }
+      const res = await fetch(`/api/dashboard/stats?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setStats(data);
@@ -89,7 +122,7 @@ export function ReportsClient() {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, monthYear]);
 
   useEffect(() => {
     loadStats();
@@ -192,6 +225,15 @@ export function ReportsClient() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Seletor de Mês */}
+          <MonthYearSelector
+            value={monthYear}
+            onChange={(my) => {
+              setMonthYear(my);
+              setPeriod("");
+            }}
+          />
+
           {/* Seletor de Períodos Rápidos */}
           <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/30">
             {[
@@ -205,9 +247,12 @@ export function ReportsClient() {
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setPeriod(p.id)}
+                onClick={() => {
+                  setPeriod(p.id);
+                  setMonthYear("");
+                }}
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-                  period === p.id
+                  period === p.id && !monthYear
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}

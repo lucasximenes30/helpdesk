@@ -12,8 +12,9 @@ import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 
 export function LoginForm() {
-  const [email, setEmail] = useState("admin@cgconstrucoes.com.br");
-  const [password, setPassword] = useState("admin123");
+  const isDev = process.env.NODE_ENV === "development";
+  const [email, setEmail] = useState(isDev ? "admin@cgconstrucoes.com.br" : "");
+  const [password, setPassword] = useState(isDev ? "admin123" : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

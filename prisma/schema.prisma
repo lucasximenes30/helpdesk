@@ -400,3 +400,35 @@ model TicketAttachment {
   @@map("ticket_attachments")
 }
 
+// 20. ReportLayout — Templates de relatórios persistidos no banco
+model ReportLayout {
+  id          String   @id @default(uuid())
+  name        String
+  config      Json     // widgets[], chartTypes, etc.
+  isDefault   Boolean  @default(false)
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("report_layouts")
+}
+
+// 21. ImportLog — Registro de importações CSV
+model ImportLog {
+  id              String   @id @default(uuid())
+  fileName        String
+  totalRows       Int
+  importedRows    Int
+  skippedRows     Int
+  newRequesters   Int      @default(0)
+  newSectors      Int      @default(0)
+  newServices     Int      @default(0)
+  newTechnicians  Int      @default(0)
+  durationMs      Int      @default(0)
+  importedBy      String?
+  monthYear       String?
+  createdAt       DateTime @default(now())
+
+  @@map("import_logs")
+}
+

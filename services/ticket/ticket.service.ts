@@ -49,6 +49,7 @@ export interface TicketFilterOptions {
   isArchived?: boolean;
   startDate?: string;
   endDate?: string;
+  monthYear?: string; // "07-2026" filter by ticketMonthYear
   sortBy?: "ticketDate" | "totalTimeMinutes" | "requester" | "service";
   sortOrder?: "asc" | "desc";
   page?: number;
@@ -657,7 +658,9 @@ export async function getTicketsPaginated(options: TicketFilterOptions) {
   if (options.priority && options.priority !== "ALL") {
     where.priority = options.priority;
   }
-  if (options.startDate || options.endDate) {
+  if (options.monthYear) {
+    where.ticketMonthYear = options.monthYear;
+  } else if (options.startDate || options.endDate) {
     where.ticketDate = {};
     if (options.startDate) {
       where.ticketDate.gte = new Date(options.startDate);

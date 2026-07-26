@@ -33,12 +33,15 @@ import {
   DashboardWidgetConfig,
   INITIAL_WIDGETS_CONFIG,
 } from "./WidgetConfigModal";
+import { MonthYearSelector } from "@/components/common/MonthYearSelector";
+import { SectorServiceWidget } from "@/components/dashboard/SectorServiceWidget";
 
 const STORAGE_KEY = "cg_helpdesk_dashboard_widgets_v1";
 
 export function DashboardClient() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<string>("LAST_30_DAYS");
+  const [monthYear, setMonthYear] = useState<string>("");
   const [stats, setStats] = useState<any>(null);
   const [widgets, setWidgets] = useState<DashboardWidgetConfig[]>(INITIAL_WIDGETS_CONFIG);
   const [configModalOpen, setConfigModalOpen] = useState(false);
@@ -74,7 +77,13 @@ export function DashboardClient() {
   const loadStats = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/dashboard/stats?period=${period}`);
+      const params = new URLSearchParams();
+      if (monthYear) {
+        params.set("monthYear", monthYear);
+      } else {
+        params.set("period", period);
+      }
+      const res = await fetch(`/api/dashboard/stats?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setStats(data);
@@ -84,7 +93,7 @@ export function DashboardClient() {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, monthYear]);
 
   useEffect(() => {
     loadStats();
@@ -161,6 +170,15 @@ export function DashboardClient() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Seletor de Mês */}
+          <MonthYearSelector
+            value={monthYear}
+            onChange={(my) => {
+              setMonthYear(my);
+              setPeriod("");
+            }}
+          />
+
           {/* Seletor de Períodos Rápidos */}
           <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/30">
             {[
@@ -174,9 +192,12 @@ export function DashboardClient() {
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setPeriod(p.id)}
+                onClick={() => {
+                  setPeriod(p.id);
+                  setMonthYear("");
+                }}
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-                  period === p.id
+                  period === p.id && !monthYear
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
@@ -366,7 +387,7 @@ export function DashboardClient() {
           </CardContent>
         </Card>
 
-        {/* KPI 6: Tempo Médio por Técnico */}
+        {/* KPI 6: Tempo Médio por Técnico (Top 3) */}
         <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
@@ -377,37 +398,56 @@ export function DashboardClient() {
                 <Users className="h-4 w-4" />
               </div>
             </div>
-            <div className="flex items-baseline justify-between">
+            {kpis.topAvgTimeTechs && kpis.topAvgTimeTechs.length > 0 ? (
+              <div className="space-y-1.5">
+                {kpis.topAvgTimeTechs.map((t: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between text-xs">
+                    <span className="text-foreground font-medium truncate max-w-[100px]">{t.name}</span>
+                    <span className="font-bold font-mono text-teal-500">{t.avgTimeFormatted}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
               <span className="text-xl font-bold text-teal-500 font-mono">
                 {kpis.avgTimePerTech?.formatted || "0 min"}
               </span>
-              <span className="text-xs text-muted-foreground">Esforço técnico</span>
-            </div>
+            )}
             <p className="text-[11px] text-muted-foreground mt-1">
-              Média balanceada por analista
+              Os 3 melhores tempos médios
             </p>
           </CardContent>
         </Card>
 
-        {/* KPI 7: Quantidade de Técnicos */}
+        {/* KPI 7: Técnico Destaque do Período */}
         <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Técnicos Ativos (TI / ADMIN)
+                🏆 Técnico Destaque
               </span>
-              <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-500">
-                <Users className="h-4 w-4" />
+              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+                <Award className="h-4 w-4" />
               </div>
             </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-foreground">
-                {kpis.activeTechCount?.value || 0}
-              </span>
-              <span className="text-xs text-muted-foreground">Analistas</span>
-            </div>
+            {kpis.topTechHighlight ? (
+              <div>
+                <span className="text-lg font-bold text-foreground">
+                  {kpis.topTechHighlight.name}
+                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="secondary" className="text-[10px] font-mono">
+                    {kpis.topTechHighlight.completedCount} concluídos
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px] font-mono">
+                    {kpis.topTechHighlight.avgTimeFormatted} médio
+                  </Badge>
+                </div>
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">Nenhum técnico no período</span>
+            )}
             <p className="text-[11px] text-muted-foreground mt-1">
-              Equipe habilitada a assumir chamados
+              Maior volume de resoluções
             </p>
           </CardContent>
         </Card>
@@ -439,8 +479,8 @@ export function DashboardClient() {
         </Card>
       </div>
 
-      {/* 3 CARDS DE RANKING (TOP TÉCNICOS, SERVIÇOS, SETORES) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* 4 CARDS DE RANKING (TOP TÉCNICOS, SERVIÇOS, SETORES, SERVIÇOS POR SETOR) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Ranking 1: Top Técnicos */}
         <Card className="border-border bg-card shadow-sm">
           <CardHeader className="pb-3 border-b border-border/60">
@@ -547,6 +587,9 @@ export function DashboardClient() {
             )}
           </CardContent>
         </Card>
+
+        {/* Ranking 4: Serviços por Setor */}
+        <SectorServiceWidget data={rankings.servicesBySector} />
       </div>
 
       {/* GRID DE WIDGETS INTERATIVOS DE GRÁFICOS (11 Gráficos com Customização) */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
 import { WhiteLabelConfig } from "@/types/white-label.types";
 import { defaultWhiteLabelConfig } from "@/config/white-label.config";
 
@@ -20,9 +20,9 @@ export function WhiteLabelProvider({
 }) {
   const [config, setConfig] = useState<WhiteLabelConfig>(initialConfig);
 
-  const updateConfig = (newConfig: Partial<WhiteLabelConfig>) => {
+  const updateConfig = useCallback((newConfig: Partial<WhiteLabelConfig>) => {
     setConfig((prev) => ({ ...prev, ...newConfig }));
-  };
+  }, []);
 
   return (
     <WhiteLabelContext.Provider value={{ config, updateConfig }}>

@@ -28,11 +28,22 @@ export async function GET(request: NextRequest) {
     const sectorId = searchParams.get("sectorId") || undefined;
     const serviceId = searchParams.get("serviceId") || undefined;
     const technicianId = searchParams.get("technicianId") || undefined;
+    
+    // Support monthYear=07-2026 or month=07&year=2026
+    let monthYear = searchParams.get("monthYear") || undefined;
+    if (!monthYear) {
+      const month = searchParams.get("month");
+      const year = searchParams.get("year");
+      if (month && year) {
+        monthYear = `${month.padStart(2, "0")}-${year}`;
+      }
+    }
 
     const stats = await getDashboardStats({
-      period: periodParam || "LAST_30_DAYS",
+      period: monthYear ? "MONTHLY_SPECIFIC" : (periodParam || "LAST_30_DAYS"),
       startDate,
       endDate,
+      monthYear,
       sectorId: sectorId !== "ALL" ? sectorId : undefined,
       serviceId: serviceId !== "ALL" ? serviceId : undefined,
       technicianId: technicianId !== "ALL" ? technicianId : undefined,

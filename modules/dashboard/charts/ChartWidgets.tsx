@@ -123,6 +123,16 @@ export function ChartWidget({
     case "PIE":
     case "DONUT": {
       const innerRadius = type === "DONUT" ? "48%" : 0;
+      const isSingleCategory = formattedData.length === 1;
+      
+      // Custom label renderer — only show for items > 5% and when multiple categories
+      const renderLabel = isSingleCategory
+        ? false
+        : ({ percent, displayLabel }: any) => {
+            if (!percent || percent < 0.05) return "";
+            return `${(percent * 100).toFixed(0)}%`;
+          };
+
       return (
         <div style={{ width: "100%", height }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -139,14 +149,12 @@ export function ChartWidget({
                 dataKey="displayValue"
                 nameKey="displayLabel"
                 cx="50%"
-                cy="50%"
-                outerRadius="75%"
+                cy="45%"
+                outerRadius="70%"
                 innerRadius={innerRadius}
-                paddingAngle={2}
-                label={(entry: any) =>
-                  `${entry.displayLabel || entry.name || ""} (${((entry.percent || 0) * 100).toFixed(0)}%)`
-                }
-                labelLine={false}
+                paddingAngle={formattedData.length > 1 ? 2 : 0}
+                label={renderLabel}
+                labelLine={!isSingleCategory && formattedData.length <= 8}
               >
                 {formattedData.map((entry, index) => (
                   <Cell
@@ -164,12 +172,13 @@ export function ChartWidget({
     }
 
     case "BAR": {
+      const hasLongLabels = formattedData.length > 5;
       return (
         <div style={{ width: "100%", height }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={formattedData}
-              margin={{ top: 10, right: 10, left: -15, bottom: 20 }}
+              margin={{ top: 10, right: 10, left: -15, bottom: hasLongLabels ? 40 : 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} />
               <XAxis
@@ -177,6 +186,11 @@ export function ChartWidget({
                 tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 axisLine={{ stroke: "var(--border)" }}
                 tickLine={false}
+                angle={hasLongLabels ? -30 : 0}
+                textAnchor={hasLongLabels ? "end" : "middle"}
+                height={hasLongLabels ? 60 : 30}
+                interval={0}
+                tickFormatter={(value: string) => value.length > 15 ? value.slice(0, 15) + "..." : value}
               />
               <YAxis
                 tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
@@ -348,10 +362,15 @@ export function ChartWidget({
     }
 
     case "RADAR": {
+      // Limit radar to 8 items and truncate names
+      const radarData = formattedData.slice(0, 8).map((d) => ({
+        ...d,
+        displayLabel: d.displayLabel.length > 12 ? d.displayLabel.slice(0, 12) + "..." : d.displayLabel,
+      }));
       return (
         <div style={{ width: "100%", height }}>
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={formattedData}>
+            <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
               <PolarGrid stroke="var(--border)" opacity={0.6} />
               <PolarAngleAxis
                 dataKey="displayLabel"
