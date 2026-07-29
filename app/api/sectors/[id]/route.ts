@@ -3,14 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession();
     if (!session || (session.role !== "ADMIN" && session.role !== "TI")) {
       return NextResponse.json({ error: "Permissão insuficiente." }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     const updatedSector = await prisma.sector.update({
@@ -30,14 +30,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession();
     if (!session || (session.role !== "ADMIN" && session.role !== "TI")) {
       return NextResponse.json({ error: "Permissão insuficiente." }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Soft delete
     await prisma.sector.update({

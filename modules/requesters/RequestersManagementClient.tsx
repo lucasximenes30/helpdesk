@@ -257,7 +257,7 @@ export function RequestersManagementClient() {
           <DataTable
             columns={columns}
             data={users}
-            loading={loading}
+            isLoading={loading}
             emptyTitle="Nenhum solicitante encontrado"
             emptyDescription="Tente ajustar os filtros ou adicione um novo solicitante."
           />
@@ -301,23 +301,21 @@ export function RequestersManagementClient() {
       <UserPasswordModal
         isOpen={isPassModalOpen}
         onClose={() => setIsPassModalOpen(false)}
-        user={passUser}
+        userId={passUser?.id || null}
+        userName={passUser?.name || ""}
       />
 
       <ConfirmDialog
-        isOpen={!!confirmDeleteUser}
+        open={!!confirmDeleteUser}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDeleteUser(null);
+        }}
         title="Excluir Solicitante"
-        description={
-          <span>
-            Tem certeza que deseja excluir o solicitante{" "}
-            <strong>{confirmDeleteUser?.name}</strong>? Esta ação o impedirá de acessar o sistema e abrir chamados.
-          </span>
-        }
-        confirmText="Sim, Excluir"
-        cancelText="Cancelar"
+        description={`Tem certeza que deseja excluir o solicitante ${confirmDeleteUser?.name}? Esta ação o impedirá de acessar o sistema e abrir chamados.`}
+        confirmLabel="Sim, Excluir"
+        cancelLabel="Cancelar"
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setConfirmDeleteUser(null)}
-        loading={isDeleting}
+        isConfirming={isDeleting}
         variant="destructive"
       />
     </>

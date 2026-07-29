@@ -180,7 +180,7 @@ export function ServicesManagementClient() {
           <DataTable
             columns={columns}
             data={filteredServices}
-            loading={loading}
+            isLoading={loading}
             emptyTitle="Nenhum serviço encontrado"
             emptyDescription="Crie o seu primeiro serviço no catálogo clicando no botão acima."
           />
@@ -195,19 +195,16 @@ export function ServicesManagementClient() {
       />
 
       <ConfirmDialog
-        isOpen={!!confirmDelete}
+        open={!!confirmDelete}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDelete(null);
+        }}
         title="Excluir Serviço"
-        description={
-          <span>
-            Tem certeza que deseja excluir o serviço{" "}
-            <strong>{confirmDelete?.name}</strong>? Os chamados antigos continuarão vinculados a ele.
-          </span>
-        }
-        confirmText="Sim, Excluir"
-        cancelText="Cancelar"
+        description={`Tem certeza que deseja excluir o serviço ${confirmDelete?.name}? Os chamados antigos continuarão vinculados a ele.`}
+        confirmLabel="Sim, Excluir"
+        cancelLabel="Cancelar"
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setConfirmDelete(null)}
-        loading={isDeleting}
+        isConfirming={isDeleting}
         variant="destructive"
       />
     </>

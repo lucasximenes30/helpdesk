@@ -165,7 +165,7 @@ export function SectorsManagementClient() {
           <DataTable
             columns={columns}
             data={filteredSectors}
-            loading={loading}
+            isLoading={loading}
             emptyTitle="Nenhum setor encontrado"
             emptyDescription="Crie o seu primeiro setor clicando no botão acima."
           />
@@ -180,19 +180,16 @@ export function SectorsManagementClient() {
       />
 
       <ConfirmDialog
-        isOpen={!!confirmDelete}
+        open={!!confirmDelete}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDelete(null);
+        }}
         title="Excluir Setor"
-        description={
-          <span>
-            Tem certeza que deseja excluir o setor{" "}
-            <strong>{confirmDelete?.name}</strong>? Ele não poderá ser recuperado.
-          </span>
-        }
-        confirmText="Sim, Excluir"
-        cancelText="Cancelar"
+        description={`Tem certeza que deseja excluir o setor ${confirmDelete?.name}? Ele não poderá ser recuperado.`}
+        confirmLabel="Sim, Excluir"
+        cancelLabel="Cancelar"
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setConfirmDelete(null)}
-        loading={isDeleting}
+        isConfirming={isDeleting}
         variant="destructive"
       />
     </>
