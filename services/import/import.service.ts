@@ -381,6 +381,17 @@ async function resolveTechnician(
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]/g, "")}.import@ti.cgconstrucoes.local`;
 
+  // Fallback: Check if user with generated email already exists to prevent unique constraint failure
+  const existingByEmail = await prisma.user.findUnique({
+    where: { email: generatedEmail },
+  });
+
+  if (existingByEmail) {
+    technicianCache.set(key, existingByEmail.id);
+    counters.existing++;
+    return existingByEmail.id;
+  }
+
   const created = await prisma.user.create({
     data: {
       name: name.trim(),
@@ -593,15 +604,20 @@ export async function executeCsvImport(
     if (resolvedBatch.length > 0) {
       try {
         await prisma.$transaction(async (tx) => {
-          for (const item of resolvedBatch) {
-            // Get next ticket number for the monthYear
-            const lastTicket = await tx.ticket.findFirst({
-              where: { ticketMonthYear: item.monthYear },
-              orderBy: { ticketNumber: "desc" },
-              select: { ticketNumber: true },
-            });
+          const nextNumbers = new Map<string, number>();
 
-            const nextNumber = (lastTicket?.ticketNumber || 0) + 1;
+          for (const item of resolvedBatch) {
+            // Get next ticket number for the monthYear if not cached
+            let nextNumber = nextNumbers.get(item.monthYear);
+            
+            if (nextNumber === undefined) {
+              const lastTicket = await tx.ticket.findFirst({
+                where: { ticketMonthYear: item.monthYear },
+                orderBy: { ticketNumber: "desc" },
+                select: { ticketNumber: true },
+              });
+              nextNumber = (lastTicket?.ticketNumber || 0) + 1;
+            }
 
             await tx.ticket.create({
               data: {
@@ -623,10 +639,13 @@ export async function executeCsvImport(
                 isArchived: false,
               },
             });
+            
+            // Increment for next ticket in the same monthYear
+            nextNumbers.set(item.monthYear, nextNumber + 1);
 
             importedRows++;
           }
-        });
+        }, { maxWait: 10000, timeout: 30000 });
       } catch (err: any) {
         errors.push(`Erro no batch ${batchStart}: ${err.message}`);
       }
