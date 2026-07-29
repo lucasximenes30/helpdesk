@@ -1,7 +1,9 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/services/rbac/rbac.service";
-import { createTicket, getTicketsPaginated } from "@/services/ticket/ticket.service";
+import { createTicket } from "@/services/ticket/create-ticket.service";
+import { getTicketsPaginated } from "@/services/ticket/query-tickets.service";
 import { OrigemType, PrioridadeType, StatusType } from "@prisma/client";
 
 export async function GET(request: NextRequest) {

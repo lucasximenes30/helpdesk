@@ -3,12 +3,11 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
+import { ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
 import { useWhiteLabel } from "@/hooks/useWhiteLabel";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export function LoginForm() {
@@ -37,7 +36,7 @@ export function LoginForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Erro ao realizar login.");
+        setError(data.message || "Credenciais inválidas.");
         setLoading(false);
         return;
       }
@@ -47,121 +46,120 @@ export function LoginForm() {
       router.refresh();
     } catch (err) {
       console.error(err);
-      setError("Erro de comunicação com o servidor.");
+      setError("Erro de comunicação.");
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-background via-secondary/40 to-primary/5 p-4">
-      <Card className="w-full max-w-md overflow-hidden border-border/80 bg-card/90 shadow-2xl backdrop-blur-md">
-        <CardHeader className="flex flex-col items-center text-center space-y-3 pt-8 pb-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 p-2 shadow-inner">
-            <Image
-              src={config.logo}
-              alt={config.systemName}
-              width={48}
-              height={48}
-              className="h-full w-full object-contain"
-              priority
-            />
+    <div className="flex min-h-screen w-full selection:bg-primary/30">
+      
+      {/* Lado Esquerdo - Formulário (Branco) */}
+      <div className="flex w-full flex-col justify-center items-center bg-white p-8 lg:w-1/3 border-r border-slate-200 relative z-10 shadow-2xl">
+        <div className="w-full max-w-[360px] animate-in fade-in zoom-in-95 duration-500">
+          
+          {/* Header */}
+          <div className="flex flex-col items-center text-center space-y-4 mb-10">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/5 border border-primary/10 shadow-sm p-1">
+              <Image
+                src={config.logo}
+                alt={config.systemName}
+                width={48}
+                height={48}
+                className="h-full w-full object-contain"
+                priority
+              />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                {config.systemName}
+              </h1>
+              <p className="text-sm text-slate-500 mt-1 font-medium">
+                Acesso ao Painel de Controle
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {config.systemName}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Faça login no sistema de atendimento técnico
-            </p>
-          </div>
-          <Badge
-            variant="outline"
-            className="mt-2 bg-primary/10 text-primary border-primary/20 px-3 py-0.5 text-xs font-semibold"
-          >
-            <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-            CG Construções • White Label Pro
-          </Badge>
-        </CardHeader>
 
-        <CardContent className="px-8 py-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Formulário */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive">
+              <div className="flex items-center gap-2 rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-600">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             <div className="space-y-1.5">
-              <label
-                htmlFor="email"
-                className="text-xs font-semibold text-foreground uppercase tracking-wider"
-              >
-                E-mail Profissional
+              <label htmlFor="email" className="block text-sm text-slate-700 font-semibold">
+                E-mail corporativo
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seuemail@cgconstrucoes.com.br"
-                  required
-                  className="pl-9 h-11"
-                />
-              </div>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nome@empresa.com.br"
+                required
+                className="h-11 text-sm bg-white border-slate-200 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm rounded-lg text-slate-900 placeholder:text-slate-400"
+              />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label
-                  htmlFor="password"
-                  className="text-xs font-semibold text-foreground uppercase tracking-wider"
-                >
-                  Senha de Acesso
+                <label htmlFor="password" className="block text-sm text-slate-700 font-semibold">
+                  Senha
                 </label>
+                <a href="#" className="text-xs font-medium text-primary hover:underline">
+                  Esqueci minha senha
+                </a>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="pl-9 h-11"
-                />
-              </div>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="h-11 text-sm bg-white border-slate-200 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm rounded-lg text-slate-900 placeholder:text-slate-400"
+              />
             </div>
 
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 font-semibold text-base shadow-md transition-all mt-2"
+              className="w-full h-11 rounded-lg font-bold text-sm bg-primary text-primary-foreground hover:bg-primary/90 shadow-md transition-all active:scale-[0.98] mt-4"
             >
               {loading ? (
-                "Autenticando no Neon..."
+                "Entrando..."
               ) : (
-                <>
-                  <span>Entrar no Sistema</span>
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                </>
+                "Entrar"
               )}
             </Button>
           </form>
-        </CardContent>
 
-        <CardFooter className="flex flex-col items-center bg-muted/40 px-8 py-4 text-center border-t border-border/50">
-          <p className="text-xs text-muted-foreground">
-            Primeiro Administrador (.env configurado):
-          </p>
-          <p className="text-xs font-mono text-foreground mt-0.5">
-            admin@cgconstrucoes.com.br / admin123
-          </p>
-        </CardFooter>
-      </Card>
+          {/* Rodapé */}
+          <div className="mt-8 flex flex-col items-center justify-center space-y-4 border-t border-slate-100 pt-6">
+            <Badge variant="outline" className="text-[11px] font-medium text-slate-500 border-slate-200 rounded-full px-3 py-1 bg-slate-50">
+              <ShieldCheck className="h-3.5 w-3.5 mr-1.5 text-emerald-500" />
+              Ambiente Seguro
+            </Badge>
+            {isDev && (
+              <p className="text-[11px] text-slate-400 text-center">
+                Autenticação de Desenvolvimento
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Lado Direito - Imagem/Banner (Escondido no Mobile) */}
+      <div className="hidden lg:flex w-2/3 flex-col justify-center bg-slate-900 relative overflow-hidden">
+        {/* Imagem do Usuário (sem gradientes para respeitar a arte original) */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/login-bg.png')" }}
+        />
+      </div>
     </div>
   );
 }

@@ -328,6 +328,8 @@ model Ticket {
   endTime          DateTime?      // Hora encerramento
   totalTimeMinutes Int?           // Tempo total em minutos calculado automaticamente (horaFinal - horaInicial)
   observations     String?        // Observações
+  aiSummary        String?        // [AI Ready] Resumo gerado do chamado
+  aiMetadata       Json?          // [AI Ready] Metadados extras da IA (tags, sentiment, etc.)
   isArchived       Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt

@@ -1,7 +1,10 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/services/rbac/rbac.service";
-import { getTicketById, updateTicket, deleteTicket } from "@/services/ticket/ticket.service";
+import { getTicketById } from "@/services/ticket/query-tickets.service";
+import { updateTicket } from "@/services/ticket/update-ticket.service";
+import { deleteTicket } from "@/services/ticket/ticket-actions.service";
 
 export async function GET(
   request: NextRequest,

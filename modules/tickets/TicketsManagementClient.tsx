@@ -193,35 +193,35 @@ export function TicketsManagementClient() {
     return `${h} h ${m} min`;
   }
 
-  // Rótulo de Status
+  // Rótulo de Status (Minimalista Linear-like)
   function renderStatusBadge(status: string) {
     switch (status) {
       case "EM_ATENDIMENTO":
         return (
-          <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30 hover:bg-amber-500/20 text-xs px-2 py-0.5 font-medium">
-            Em Atendimento
+          <Badge className="bg-transparent text-amber-500 border-amber-500/20 hover:bg-amber-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse" /> Em Atendimento
           </Badge>
         );
       case "CONCLUIDO":
         return (
-          <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20 text-xs px-2 py-0.5 font-medium">
-            Concluído
+          <Badge className="bg-transparent text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5" /> Concluído
           </Badge>
         );
       case "AGUARDANDO":
         return (
-          <Badge className="bg-blue-500/15 text-blue-600 border-blue-500/30 hover:bg-blue-500/20 text-xs px-2 py-0.5 font-medium">
-            Aguardando
+          <Badge className="bg-transparent text-blue-500 border-blue-500/20 hover:bg-blue-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5" /> Aguardando
           </Badge>
         );
       case "AGENDADO":
         return (
-          <Badge className="bg-purple-500/15 text-purple-600 border-purple-500/30 hover:bg-purple-500/20 text-xs px-2 py-0.5 font-medium">
-            Agendado
+          <Badge className="bg-transparent text-purple-500 border-purple-500/20 hover:bg-purple-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mr-1.5" /> Agendado
           </Badge>
         );
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline" className="text-[11px] shadow-none">{status}</Badge>;
     }
   }
 
@@ -308,8 +308,8 @@ export function TicketsManagementClient() {
       key: "ticketNumber",
       className: "w-20 text-center font-mono",
       render: (item) => (
-        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20">
-          #{item.ticketNumber}{item.ticketMonthYear ? `/${item.ticketMonthYear}` : ""}
+        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[11px] font-mono text-muted-foreground border border-border/50 bg-transparent">
+          {item.ticketNumber}{item.ticketMonthYear ? `/${item.ticketMonthYear.split('-')[0]}` : ""}
         </span>
       ),
     },
@@ -383,8 +383,8 @@ export function TicketsManagementClient() {
       key: "totalTimeMinutes",
       className: "w-24 text-center font-mono",
       render: (item) => (
-        <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold px-2 py-0.5 rounded bg-muted/40 border border-border/60">
-          <Clock className="w-3 h-3 text-muted-foreground" />
+        <span className="inline-flex items-center gap-1 text-[11px] font-mono px-1.5 py-0.5 text-muted-foreground">
+          <Clock className="w-3 h-3 opacity-50" />
           {formatTimeBadge(item.totalTimeMinutes)}
         </span>
       ),
@@ -477,15 +477,14 @@ export function TicketsManagementClient() {
 
   return (
     <div className="space-y-6">
-      {/* Cabeçalho e Botão de Novo Chamado */}
+      {/* Cabeçalho Minimalista */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <FileText className="w-6 h-6 text-primary" />
-            Gestão de Chamados
+          <h1 className="text-xl font-semibold tracking-tight text-foreground flex items-center gap-2">
+            Chamados
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Substituição da planilha de TI: numeração automática, timeline de atendimentos e cálculo de SLA.
+          <p className="text-[13px] text-muted-foreground mt-0.5">
+            Gestão inteligente de tickets e SLA.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -515,9 +514,9 @@ export function TicketsManagementClient() {
         </div>
       </div>
 
-      {/* Cards de KPIs Operacionais */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border border-border/80 bg-card/60 shadow-sm">
+      {/* Cards de KPIs (Slim) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="border-border/40 bg-transparent shadow-none">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs uppercase font-semibold text-muted-foreground">
@@ -530,7 +529,7 @@ export function TicketsManagementClient() {
             <FileText className="w-8 h-8 text-primary/40" />
           </CardContent>
         </Card>
-        <Card className="border border-border/80 bg-card/60 shadow-sm">
+        <Card className="border-border/40 bg-transparent shadow-none">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs uppercase font-semibold text-amber-500">
@@ -543,7 +542,7 @@ export function TicketsManagementClient() {
             <Clock className="w-8 h-8 text-amber-500/40" />
           </CardContent>
         </Card>
-        <Card className="border border-border/80 bg-card/60 shadow-sm">
+        <Card className="border-border/40 bg-transparent shadow-none">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs uppercase font-semibold text-emerald-500">
@@ -556,7 +555,7 @@ export function TicketsManagementClient() {
             <CheckCircle2 className="w-8 h-8 text-emerald-500/40" />
           </CardContent>
         </Card>
-        <Card className="border border-border/80 bg-card/60 shadow-sm">
+        <Card className="border-border/40 bg-transparent shadow-none">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs uppercase font-semibold text-blue-500">

@@ -14,7 +14,7 @@ interface AppProvidersProps {
 
 export function AppProviders({ children, initialUser = null }: AppProvidersProps) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
       <WhiteLabelProvider>
         <AuthProvider initialUser={initialUser}>
           <SidebarProvider>{children}</SidebarProvider>
