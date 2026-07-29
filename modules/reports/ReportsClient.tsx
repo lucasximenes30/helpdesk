@@ -381,12 +381,12 @@ export function ReportsClient() {
           </CardContent>
         </Card>
 
-        {/* KPI 2: Em Atendimento */}
+        {/* KPI 2: Aberto */}
         <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Em Atendimento
+                Aberto
               </span>
               <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
                 <Clock className="h-4 w-4" />
@@ -406,12 +406,12 @@ export function ReportsClient() {
           </CardContent>
         </Card>
 
-        {/* KPI 3: Concluídos */}
+        {/* KPI 3: Resolvidos */}
         <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Concluídos
+                Resolvidos
               </span>
               <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
                 <CheckCircle2 className="h-4 w-4" />

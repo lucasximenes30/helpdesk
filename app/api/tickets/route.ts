@@ -51,6 +51,8 @@ export async function GET(request: NextRequest) {
       monthYear,
       sortBy,
       sortOrder,
+      userId: session.id,
+      role: session.role,
     });
 
     return NextResponse.json(result);

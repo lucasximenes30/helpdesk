@@ -61,13 +61,21 @@ export async function updateTicket(
   let endTime = input.endTime !== undefined ? (input.endTime ? new Date(input.endTime) : null) : existing.endTime;
   const status = input.status || existing.status;
 
-  if (status === "CONCLUIDO" && !endTime) {
+  if (status === "RESOLVIDO" && !endTime) {
     endTime = new Date();
-  } else if (status !== "CONCLUIDO" && input.status && existing.status === "CONCLUIDO" && !input.endTime) {
+  } else if (status !== "RESOLVIDO" && input.status && existing.status === "RESOLVIDO" && !input.endTime) {
     endTime = null;
   }
 
   const totalTimeMinutes = calculateTotalTimeMinutes(startTime, endTime);
+
+  let dueDate = existing.dueDate;
+  if (input.serviceId !== undefined && input.serviceId !== existing.serviceId) {
+    const service = await prisma.service.findUnique({ where: { id: input.serviceId }, select: { slaHours: true } });
+    if (service?.slaHours) {
+      dueDate = new Date(new Date(existing.ticketDate).getTime() + service.slaHours * 60 * 60 * 1000);
+    }
+  }
 
   const updated = await prisma.ticket.update({
     where: { id },
@@ -84,6 +92,7 @@ export async function updateTicket(
       startTime,
       endTime,
       totalTimeMinutes,
+      dueDate,
       observations: input.observations !== undefined ? (input.observations ? input.observations.trim() : null) : existing.observations,
     },
     include: {
@@ -126,8 +135,8 @@ export async function updateTicket(
   if (existing.status !== updated.status) {
     const label = getStatusLabel(updated.status);
     historyEntries.push({
-      eventType: updated.status === "CONCLUIDO" ? "COMPLETED" : "STATUS_CHANGED",
-      description: updated.status === "CONCLUIDO" ? "Concluído." : `Status alterado para ${label}.`,
+      eventType: updated.status === "RESOLVIDO" ? "COMPLETED" : "STATUS_CHANGED",
+      description: updated.status === "RESOLVIDO" ? "Resolvido." : `Status alterado para ${label}.`,
       oldValue: getStatusLabel(existing.status),
       newValue: label,
     });

@@ -37,14 +37,27 @@ export function calculateTotalTimeMinutes(startTime?: Date | null, endTime?: Dat
  */
 export function getStatusLabel(status: StatusType): string {
   switch (status) {
+    case "ABERTO":
+      return "Aberto";
+    case "EM_ANDAMENTO":
+      return "Em andamento";
+    case "AGUARDANDO_USUARIO":
+      return "Aguardando usuário";
+    case "AGUARDANDO_PECA":
+      return "Aguardando peça";
+    case "RESOLVIDO":
+      return "Resolvido";
+    case "CANCELADO":
+      return "Cancelado";
+    // Mapeamento pros antigos para n quebrar UI se houver chamados antigos
     case "EM_ATENDIMENTO":
-      return "Em Atendimento";
+      return "Em andamento";
     case "CONCLUIDO":
-      return "Concluído";
+      return "Resolvido";
     case "AGUARDANDO":
-      return "Aguardando";
+      return "Aguardando usuário";
     case "AGENDADO":
-      return "Agendado";
+      return "Aguardando peça";
     default:
       return status;
   }
@@ -77,12 +90,12 @@ export function getTicketMonthYear(date?: Date | string | null): string {
 }
 
 /**
- * Retorna o número do chamado formatado no formato "#X/MM-AAAA"
+ * Retorna o número do chamado formatado no formato "HD-000001"
  */
 export function formatTicketNumber(
   ticketNumber: number | string,
   ticketMonthYear?: string | null
 ): string {
-  if (!ticketMonthYear) return `#${ticketNumber}`;
-  return `#${ticketNumber}/${ticketMonthYear}`;
+  const padded = String(ticketNumber).padStart(6, "0");
+  return `HD-${padded}`;
 }

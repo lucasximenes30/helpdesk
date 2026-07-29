@@ -216,15 +216,15 @@ function mapStatus(csvStatus: string): StatusType {
     .trim();
 
   if (normalized.includes("concluido") || normalized.includes("concluído"))
-    return "CONCLUIDO";
-  if (normalized.includes("atendimento")) return "EM_ATENDIMENTO";
-  if (normalized.includes("agendado")) return "AGENDADO";
-  if (normalized.includes("aguardando")) return "AGUARDANDO";
+    return "RESOLVIDO";
+  if (normalized.includes("atendimento")) return "ABERTO";
+  if (normalized.includes("agendado")) return "AGUARDANDO_PECA";
+  if (normalized.includes("aguardando")) return "AGUARDANDO_USUARIO";
 
-  // Empty status maps to AGUARDANDO (user decision)
-  if (!normalized) return "AGUARDANDO";
+  // Empty status maps to AGUARDANDO_USUARIO (user decision)
+  if (!normalized) return "AGUARDANDO_USUARIO";
 
-  return "AGUARDANDO";
+  return "AGUARDANDO_USUARIO";
 }
 
 /**

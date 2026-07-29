@@ -17,6 +17,8 @@ export interface TicketFilterOptions {
   sortOrder?: "asc" | "desc";
   page?: number;
   limit?: number;
+  userId?: string;
+  role?: string;
 }
 
 /**
@@ -60,6 +62,18 @@ export async function getTicketsPaginated(options: TicketFilterOptions) {
     deletedAt: null,
     isArchived: options.isArchived === true,
   };
+
+  if (options.role === "SOLICITANTE" && options.userId) {
+     const user = await prisma.user.findUnique({ where: { id: options.userId } });
+     if (user) {
+         where.requester = { email: user.email };
+     }
+  } else if (options.role === "TI" && options.userId) {
+     // Técnico vê chamados atribuídos a ele ou não atribuídos (Fila Geral)
+     where.AND = [
+         { OR: [{ technicianId: options.userId }, { technicianId: null }] }
+     ];
+  }
 
   if (options.status && options.status !== "ALL") {
     where.status = options.status;

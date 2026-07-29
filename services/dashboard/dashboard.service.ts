@@ -278,9 +278,9 @@ export async function getDashboardStats(
       ? 100
       : 0;
 
-  const inProgress = currentTickets.filter((t) => t.status === "EM_ATENDIMENTO").length;
-  const completed = currentTickets.filter((t) => t.status === "CONCLUIDO").length;
-  const prevCompleted = previousTickets.filter((t) => t.status === "CONCLUIDO").length;
+  const inProgress = currentTickets.filter((t) => t.status === "ABERTO").length;
+  const completed = currentTickets.filter((t) => t.status === "RESOLVIDO").length;
+  const prevCompleted = previousTickets.filter((t) => t.status === "RESOLVIDO").length;
   const changePercentCompleted =
     prevCompleted > 0
       ? Math.round(((completed - prevCompleted) / prevCompleted) * 100)
@@ -288,11 +288,11 @@ export async function getDashboardStats(
       ? 100
       : 0;
 
-  const waiting = currentTickets.filter((t) => t.status === "AGUARDANDO").length;
-  const scheduled = currentTickets.filter((t) => t.status === "AGENDADO").length;
+  const waiting = currentTickets.filter((t) => t.status === "AGUARDANDO_USUARIO").length;
+  const scheduled = currentTickets.filter((t) => t.status === "AGUARDANDO_PECA").length;
 
   const completedWithTime = currentTickets.filter(
-    (t) => t.status === "CONCLUIDO" && typeof t.totalTimeMinutes === "number" && t.totalTimeMinutes > 0
+    (t) => t.status === "RESOLVIDO" && typeof t.totalTimeMinutes === "number" && t.totalTimeMinutes > 0
   );
 
   const avgTimeMinutesVal =
@@ -350,7 +350,7 @@ export async function getDashboardStats(
       };
     }
     techMap[techKey].count += 1;
-    if (t.status === "CONCLUIDO" && typeof t.totalTimeMinutes === "number") {
+    if (t.status === "RESOLVIDO" && typeof t.totalTimeMinutes === "number") {
       techMap[techKey].totalTime += t.totalTimeMinutes;
       techMap[techKey].completedCount += 1;
     }
@@ -358,7 +358,7 @@ export async function getDashboardStats(
     // Sector
     if (t.sectorId && sectorMap[t.sectorId]) {
       sectorMap[t.sectorId].count += 1;
-      if (t.status === "CONCLUIDO" && typeof t.totalTimeMinutes === "number") {
+      if (t.status === "RESOLVIDO" && typeof t.totalTimeMinutes === "number") {
         sectorMap[t.sectorId].totalTime += t.totalTimeMinutes;
         sectorMap[t.sectorId].completedCount += 1;
       }
@@ -367,7 +367,7 @@ export async function getDashboardStats(
     // Service
     if (t.serviceId && serviceMap[t.serviceId]) {
       serviceMap[t.serviceId].count += 1;
-      if (t.status === "CONCLUIDO" && typeof t.totalTimeMinutes === "number") {
+      if (t.status === "RESOLVIDO" && typeof t.totalTimeMinutes === "number") {
         serviceMap[t.serviceId].totalTime += t.totalTimeMinutes;
         serviceMap[t.serviceId].completedCount += 1;
       }
@@ -423,8 +423,8 @@ export async function getDashboardStats(
     .sort((a, b) => b.value - a.value);
 
   const byStatus: ChartDataPoint[] = [
-    { name: "Em Atendimento", value: inProgress, color: "#f59e0b" },
-    { name: "Concluído", value: completed, color: "#10b981" },
+    { name: "Aberto", value: inProgress, color: "#f59e0b" },
+    { name: "Resolvido", value: completed, color: "#10b981" },
     { name: "Aguardando", value: waiting, color: "#3b82f6" },
     { name: "Agendado", value: scheduled, color: "#8b5cf6" },
   ];
@@ -484,8 +484,8 @@ export async function getDashboardStats(
       byDayMap[dateStr] = { label: dayLabel, total: 0, concluidos: 0, emAtendimento: 0 };
     }
     byDayMap[dateStr].total += 1;
-    if (t.status === "CONCLUIDO") byDayMap[dateStr].concluidos += 1;
-    if (t.status === "EM_ATENDIMENTO") byDayMap[dateStr].emAtendimento += 1;
+    if (t.status === "RESOLVIDO") byDayMap[dateStr].concluidos += 1;
+    if (t.status === "ABERTO") byDayMap[dateStr].emAtendimento += 1;
 
     // Semana (Início do Domingo daquela semana)
     const weekStart = new Date(d);
@@ -496,8 +496,8 @@ export async function getDashboardStats(
       byWeekMap[weekKey] = { label: weekLabel, total: 0, concluidos: 0, emAtendimento: 0 };
     }
     byWeekMap[weekKey].total += 1;
-    if (t.status === "CONCLUIDO") byWeekMap[weekKey].concluidos += 1;
-    if (t.status === "EM_ATENDIMENTO") byWeekMap[weekKey].emAtendimento += 1;
+    if (t.status === "RESOLVIDO") byWeekMap[weekKey].concluidos += 1;
+    if (t.status === "ABERTO") byWeekMap[weekKey].emAtendimento += 1;
 
     // Mês
     const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -506,8 +506,8 @@ export async function getDashboardStats(
       byMonthMap[monthKey] = { label: monthLabel, total: 0, concluidos: 0, emAtendimento: 0 };
     }
     byMonthMap[monthKey].total += 1;
-    if (t.status === "CONCLUIDO") byMonthMap[monthKey].concluidos += 1;
-    if (t.status === "EM_ATENDIMENTO") byMonthMap[monthKey].emAtendimento += 1;
+    if (t.status === "RESOLVIDO") byMonthMap[monthKey].concluidos += 1;
+    if (t.status === "ABERTO") byMonthMap[monthKey].emAtendimento += 1;
   });
 
   const byDay: TimeSeriesPoint[] = Object.entries(byDayMap)

@@ -153,11 +153,11 @@ export function RequesterHistoryCard({
                       variant="outline"
                       className="text-[9px] px-1 py-0 uppercase tracking-tighter"
                     >
-                      {t.status === "EM_ATENDIMENTO"
+                      {t.status === "ABERTO"
                         ? "Em Atend."
-                        : t.status === "CONCLUIDO"
-                        ? "Concluído"
-                        : t.status === "AGUARDANDO"
+                        : t.status === "RESOLVIDO"
+                        ? "Resolvido"
+                        : t.status === "AGUARDANDO_USUARIO"
                         ? "Aguardando"
                         : "Agendado"}
                     </Badge>

@@ -102,7 +102,7 @@ export async function duplicateTicket(
       sectorId: original.sectorId,
       technicianId: original.technicianId,
       serviceId: original.serviceId,
-      status: "EM_ATENDIMENTO",
+      status: "ABERTO",
       origin: original.origin,
       priority: original.priority,
       ticketDate: ticketDateObj,

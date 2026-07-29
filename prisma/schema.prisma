@@ -14,10 +14,19 @@ enum RoleType {
 }
 
 enum StatusType {
+  // Antigos
   EM_ATENDIMENTO
   CONCLUIDO
   AGUARDANDO
   AGENDADO
+  
+  // Novos
+  ABERTO
+  EM_ANDAMENTO
+  AGUARDANDO_USUARIO
+  AGUARDANDO_PECA
+  RESOLVIDO
+  CANCELADO
 }
 
 enum OrigemType {
@@ -161,7 +170,7 @@ model Settings {
   sessionTimeoutMin Int   @default(120)
   requireFirstAccess Boolean @default(true)
   maxLoginAttempts Int    @default(5)
-  defaultStatus  String   @default("EM_ATENDIMENTO")
+  defaultStatus  String   @default("ABERTO")
   defaultOrigin  String   @default("MANUAL")
   defaultPriority String  @default("MEDIA")
   defaultSlaHours Int     @default(24)
@@ -320,10 +329,11 @@ model Ticket {
   technician       User?          @relation("TicketTechnician", fields: [technicianId], references: [id], onDelete: SetNull)
   serviceId        String         // FK Serviço (catálogo)
   service          Service        @relation(fields: [serviceId], references: [id])
-  status           StatusType     @default(EM_ATENDIMENTO)
+  status           StatusType     @default(ABERTO)
   origin           OrigemType     @default(MANUAL)
   priority         PrioridadeType @default(MEDIA)
   ticketDate       DateTime       @default(now()) // Data do chamado
+  dueDate          DateTime?      // Data prevista de conclusão (SLA)
   startTime        DateTime?      // Hora início
   endTime          DateTime?      // Hora encerramento
   totalTimeMinutes Int?           // Tempo total em minutos calculado automaticamente (horaFinal - horaInicial)

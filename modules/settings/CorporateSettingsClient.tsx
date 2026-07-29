@@ -71,7 +71,7 @@ export function CorporateSettingsClient() {
     sessionTimeoutMin: 120,
     requireFirstAccess: true,
     maxLoginAttempts: 5,
-    defaultStatus: "EM_ATENDIMENTO",
+    defaultStatus: "ABERTO",
     defaultOrigin: "MANUAL",
     defaultPriority: "MEDIA",
     defaultSlaHours: 24,
@@ -172,7 +172,7 @@ export function CorporateSettingsClient() {
       sessionTimeoutMin: 120,
       requireFirstAccess: true,
       maxLoginAttempts: 5,
-      defaultStatus: "EM_ATENDIMENTO",
+      defaultStatus: "ABERTO",
       defaultOrigin: "MANUAL",
       defaultPriority: "MEDIA",
       defaultSlaHours: 24,
@@ -620,7 +620,7 @@ export function CorporateSettingsClient() {
                   onChange={(e) => handleChange("defaultStatus", e.target.value)}
                   className="w-full h-10 px-3 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="EM_ATENDIMENTO">Em Atendimento (Padrão)</option>
+                  <option value="ABERTO">Aberto (Padrão)</option>
                   <option value="PENDENTE">Pendente (Requer Triagem)</option>
                 </select>
               </div>
@@ -681,7 +681,7 @@ export function CorporateSettingsClient() {
               <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
                 <div className="space-y-0.5">
                   <p className="text-sm font-bold text-foreground">
-                    Arquivar Concluídos Automaticamente
+                    Arquivar Resolvidos Automaticamente
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Mover chamados antigos finalizados para o arquivo histórico.

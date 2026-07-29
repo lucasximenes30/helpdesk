@@ -33,6 +33,9 @@ import {
 import { TicketModal } from "./TicketModal";
 import { AssignTechnicianModal, ChangeStatusModal } from "./QuickActionModals";
 import { MonthYearSelector } from "@/components/common/MonthYearSelector";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import { ImportExcelModal } from "./ImportExcelModal";
 
 export interface TicketRow {
   id: string;
@@ -44,6 +47,7 @@ export interface TicketRow {
   origin: string;
   priority: string;
   ticketDate: string;
+  dueDate: string | null;
   startTime: string | null;
   endTime: string | null;
   totalTimeMinutes: number | null;
@@ -94,11 +98,13 @@ export function TicketsManagementClient() {
   // Confirm delete / archive
   const [confirmDelete, setConfirmDelete] = useState<TicketRow | null>(null);
   const [confirmArchive, setConfirmArchive] = useState<TicketRow | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   // KPIs calculados com base na listagem
-  const totalInAttendance = tickets.filter((t) => t.status === "EM_ATENDIMENTO").length;
-  const totalCompleted = tickets.filter((t) => t.status === "CONCLUIDO").length;
-  const totalWaiting = tickets.filter((t) => t.status === "AGUARDANDO").length;
+  const totalInAttendance = tickets.filter((t) => t.status === "ABERTO").length;
+  const totalCompleted = tickets.filter((t) => t.status === "RESOLVIDO").length;
+  const totalWaiting = tickets.filter((t) => t.status === "AGUARDANDO_USUARIO").length;
 
   const loadAuxiliaryData = useCallback(async () => {
     try {
@@ -196,25 +202,25 @@ export function TicketsManagementClient() {
   // Rótulo de Status (Minimalista Linear-like)
   function renderStatusBadge(status: string) {
     switch (status) {
-      case "EM_ATENDIMENTO":
+      case "ABERTO":
         return (
           <Badge className="bg-transparent text-amber-500 border-amber-500/20 hover:bg-amber-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse" /> Em Atendimento
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse" /> Aberto
           </Badge>
         );
-      case "CONCLUIDO":
+      case "RESOLVIDO":
         return (
           <Badge className="bg-transparent text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5" /> Concluído
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5" /> Resolvido
           </Badge>
         );
-      case "AGUARDANDO":
+      case "AGUARDANDO_USUARIO":
         return (
           <Badge className="bg-transparent text-blue-500 border-blue-500/20 hover:bg-blue-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5" /> Aguardando
           </Badge>
         );
-      case "AGENDADO":
+      case "AGUARDANDO_PECA":
         return (
           <Badge className="bg-transparent text-purple-500 border-purple-500/20 hover:bg-purple-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mr-1.5" /> Agendado
@@ -302,6 +308,57 @@ export function TicketsManagementClient() {
     }
   }
 
+  // Export to PDF
+  async function exportToPDF() {
+    setExportingPdf(true);
+    try {
+      const params = new URLSearchParams({
+        query, status: statusFilter, sectorId: sectorFilter, serviceId: serviceFilter, technicianId: technicianFilter, origin: originFilter, isArchived: String(isArchived), monthYear: monthYear || "", format: "json"
+      });
+      const res = await fetch(`/api/tickets/export?${params.toString()}`);
+      if (!res.ok) throw new Error("Erro ao buscar dados");
+      const data: TicketRow[] = await res.json();
+
+      const doc = new jsPDF("landscape");
+      
+      // Title
+      doc.setFontSize(16);
+      doc.text("Relatório de Chamados - HelpDesk Pro", 14, 15);
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 22);
+
+      const tableColumn = ["Número", "Data", "Solicitante", "Setor", "Serviço", "Técnico", "Problema", "Status", "Prioridade", "Tempo"];
+      const tableRows = data.map(t => [
+        t.ticketNumber + (t.ticketMonthYear ? `/${t.ticketMonthYear.split('-')[0]}` : ''),
+        new Date(t.ticketDate).toLocaleDateString('pt-BR'),
+        t.requester.name,
+        t.sector.name,
+        t.service.name,
+        t.technician?.name || "Fila Geral",
+        t.problem,
+        t.status,
+        t.priority,
+        t.totalTimeMinutes ? `${t.totalTimeMinutes} min` : ""
+      ]);
+
+      (doc as any).autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 30,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [15, 23, 42] }, // Slate 900
+      });
+
+      doc.save(`relatorio-chamados-${Date.now()}.pdf`);
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      alert("Erro ao exportar PDF.");
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
   const columns: Column<TicketRow>[] = [
     {
       label: "Número",
@@ -382,12 +439,37 @@ export function TicketsManagementClient() {
       label: "Tempo Total",
       key: "totalTimeMinutes",
       className: "w-24 text-center font-mono",
-      render: (item) => (
-        <span className="inline-flex items-center gap-1 text-[11px] font-mono px-1.5 py-0.5 text-muted-foreground">
-          <Clock className="w-3 h-3 opacity-50" />
-          {formatTimeBadge(item.totalTimeMinutes)}
-        </span>
-      ),
+      render: (item) => {
+        let slaColor = "text-muted-foreground";
+        let slaText = "";
+        if (item.dueDate && item.status !== "RESOLVIDO" && item.status !== "CANCELADO") {
+           const due = new Date(item.dueDate).getTime();
+           const now = Date.now();
+           if (now > due) {
+              slaColor = "text-red-500 font-bold";
+              slaText = " (Atrasado)";
+           } else if (due - now < 3600000) { // Menos de 1 hora
+              slaColor = "text-amber-500 font-bold";
+              slaText = " (Critico)";
+           } else {
+              slaColor = "text-emerald-500 font-medium";
+              slaText = " (No Prazo)";
+           }
+        }
+        return (
+          <div className="flex flex-col items-center justify-center">
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono px-1.5 py-0.5 text-muted-foreground">
+              <Clock className="w-3 h-3 opacity-50" />
+              {formatTimeBadge(item.totalTimeMinutes)}
+            </span>
+            {item.dueDate && item.status !== "RESOLVIDO" && item.status !== "CANCELADO" && (
+              <span className={`text-[9px] ${slaColor}`}>
+                {new Date(item.dueDate).toLocaleTimeString("pt-BR", {hour: '2-digit', minute:'2-digit'})} {slaText}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       label: "Status",
@@ -488,6 +570,39 @@ export function TicketsManagementClient() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="text-xs" disabled={exportingPdf}>
+                <FileText className="w-3.5 h-3.5 mr-1.5" />
+                {exportingPdf ? "Exportando..." : "Exportar"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => {
+                window.open(`/api/tickets/export?${new URLSearchParams({
+                  query, status: statusFilter, sectorId: sectorFilter, serviceId: serviceFilter, technicianId: technicianFilter, origin: originFilter, isArchived: String(isArchived), monthYear
+                }).toString()}`, '_blank');
+              }} className="text-xs gap-2">
+                <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                Exportar para CSV / Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToPDF} className="text-xs gap-2">
+                <FileText className="w-3.5 h-3.5 text-red-500" />
+                Exportar para PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportModalOpen(true)}
+            className="text-xs"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
+            Importar Excel
+          </Button>
+
           <Button
             variant={isArchived ? "secondary" : "outline"}
             size="sm"
@@ -533,7 +648,7 @@ export function TicketsManagementClient() {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs uppercase font-semibold text-amber-500">
-                Em Atendimento
+                Aberto
               </p>
               <p className="text-2xl font-bold text-foreground mt-1 font-mono">
                 {totalInAttendance}
@@ -546,7 +661,7 @@ export function TicketsManagementClient() {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs uppercase font-semibold text-emerald-500">
-                Concluídos
+                Resolvidos
               </p>
               <p className="text-2xl font-bold text-foreground mt-1 font-mono">
                 {totalCompleted}
@@ -613,10 +728,10 @@ export function TicketsManagementClient() {
                 }}
               >
                 <option value="ALL">Status: Todos</option>
-                <option value="EM_ATENDIMENTO">Em Atendimento</option>
-                <option value="CONCLUIDO">Concluído</option>
-                <option value="AGUARDANDO">Aguardando</option>
-                <option value="AGENDADO">Agendado</option>
+                <option value="ABERTO">Aberto</option>
+                <option value="RESOLVIDO">Resolvido</option>
+                <option value="AGUARDANDO_USUARIO">Aguardando</option>
+                <option value="AGUARDANDO_PECA">Agendado</option>
               </select>
             </div>
 
@@ -746,7 +861,7 @@ export function TicketsManagementClient() {
         open={statusModalOpen}
         onOpenChange={setStatusModalOpen}
         ticketNumber={activeTicket?.ticketNumber}
-        currentStatus={activeTicket?.status || "EM_ATENDIMENTO"}
+        currentStatus={activeTicket?.status || "ABERTO"}
         onSave={handleSaveStatus}
       />
 
@@ -771,6 +886,15 @@ export function TicketsManagementClient() {
         cancelLabel="Cancelar"
         variant="destructive"
         onConfirm={handleDeleteConfirm}
+      />
+
+      <ImportExcelModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        onImported={() => {
+           setImportModalOpen(false);
+           fetchTickets();
+        }}
       />
     </div>
   );

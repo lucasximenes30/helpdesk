@@ -58,13 +58,13 @@ export function OperationalDashboardClient() {
         const now = new Date();
         const todayStr = now.toISOString().slice(0, 10);
 
-        const inProg = list.filter((t: any) => t.status === "EM_ATENDIMENTO").length;
+        const inProg = list.filter((t: any) => t.status === "ABERTO").length;
         const wait = list.filter(
-          (t: any) => t.status === "AGUARDANDO" || t.status === "AGENDADO"
+          (t: any) => t.status === "AGUARDANDO_USUARIO" || t.status === "AGUARDANDO_PECA"
         ).length;
         const unass = list.filter((t: any) => !t.technicianId).length;
         const resToday = list.filter((t: any) => {
-          if (t.status !== "CONCLUIDO") return false;
+          if (t.status !== "RESOLVIDO") return false;
           const closedDate = t.closedAt || t.updatedAt;
           if (!closedDate) return false;
           return closedDate.slice(0, 10) === todayStr;
@@ -92,30 +92,30 @@ export function OperationalDashboardClient() {
     return <DashboardSkeleton />;
   }
 
-  const inProgressTickets = tickets.filter((t) => t.status === "EM_ATENDIMENTO").slice(0, 5);
+  const inProgressTickets = tickets.filter((t) => t.status === "ABERTO").slice(0, 5);
   const recentTickets = tickets.slice(0, 7);
 
   function getStatusBadge(status: string) {
     switch (status) {
-      case "EM_ATENDIMENTO":
+      case "ABERTO":
         return (
           <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/30 font-semibold text-[11px]">
-            Em Atendimento
+            Aberto
           </Badge>
         );
-      case "CONCLUIDO":
+      case "RESOLVIDO":
         return (
           <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 font-semibold text-[11px]">
-            Concluído
+            Resolvido
           </Badge>
         );
-      case "AGUARDANDO":
+      case "AGUARDANDO_USUARIO":
         return (
           <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/30 font-semibold text-[11px]">
             Aguardando
           </Badge>
         );
-      case "AGENDADO":
+      case "AGUARDANDO_PECA":
         return (
           <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/30 font-semibold text-[11px]">
             Agendado
@@ -188,12 +188,12 @@ export function OperationalDashboardClient() {
 
       {/* 4 CARDS DE RESUMO RÁPIDO OPERACIONAL */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Em Atendimento */}
+        {/* Card 1: Aberto */}
         <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Em Atendimento
+                Aberto
               </span>
               <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
                 <Clock className="h-4 w-4" />
@@ -263,12 +263,12 @@ export function OperationalDashboardClient() {
           </CardContent>
         </Card>
 
-        {/* Card 4: Concluídos Hoje */}
+        {/* Card 4: Resolvidos Hoje */}
         <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Concluídos Hoje
+                Resolvidos Hoje
               </span>
               <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
                 <CheckCircle2 className="h-4 w-4" />
@@ -323,14 +323,14 @@ export function OperationalDashboardClient() {
             </div>
           </Link>
 
-          <Link href="/chamados?status=EM_ATENDIMENTO" className="block">
+          <Link href="/chamados?status=ABERTO" className="block">
             <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-md bg-amber-500/10 text-amber-500">
                   <Clock className="h-4 w-4" />
                 </div>
                 <span className="text-xs font-bold text-foreground">
-                  Chamados Em Atendimento
+                  Chamados Aberto
                 </span>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -367,7 +367,7 @@ export function OperationalDashboardClient() {
               <Clock className="h-4 w-4 text-amber-500" />
               Fila em Atendimento (Analistas)
             </CardTitle>
-            <Link href="/chamados?status=EM_ATENDIMENTO">
+            <Link href="/chamados?status=ABERTO">
               <Button variant="ghost" size="sm" className="h-7 text-xs px-2">
                 Ver todos
               </Button>

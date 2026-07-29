@@ -116,7 +116,7 @@ export function ChangeStatusModal({
   onSave,
 }: ChangeStatusModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>(
-    currentStatus || "EM_ATENDIMENTO"
+    currentStatus || "ABERTO"
   );
   const [loading, setLoading] = useState(false);
 
@@ -133,10 +133,10 @@ export function ChangeStatusModal({
   };
 
   const statusList = [
-    { code: "EM_ATENDIMENTO", label: "Em Atendimento", icon: Clock, color: "text-amber-500" },
-    { code: "CONCLUIDO", label: "Concluído", icon: CheckCircle2, color: "text-emerald-500" },
-    { code: "AGUARDANDO", label: "Aguardando", icon: AlertTriangle, color: "text-blue-500" },
-    { code: "AGENDADO", label: "Agendado", icon: Clock, color: "text-purple-500" },
+    { code: "ABERTO", label: "Aberto", icon: Clock, color: "text-amber-500" },
+    { code: "RESOLVIDO", label: "Resolvido", icon: CheckCircle2, color: "text-emerald-500" },
+    { code: "AGUARDANDO_USUARIO", label: "Aguardando", icon: AlertTriangle, color: "text-blue-500" },
+    { code: "AGUARDANDO_PECA", label: "Agendado", icon: Clock, color: "text-purple-500" },
   ];
 
   return (

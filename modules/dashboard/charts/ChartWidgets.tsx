@@ -212,7 +212,7 @@ export function ChartWidget({
                   />
                   <Bar
                     dataKey="concluidos"
-                    name="Concluídos"
+                    name="Resolvidos"
                     fill={colors[1]}
                     radius={[4, 4, 0, 0]}
                   />
@@ -269,7 +269,7 @@ export function ChartWidget({
                   <Line
                     type="monotone"
                     dataKey="concluidos"
-                    name="Concluídos"
+                    name="Resolvidos"
                     stroke={colors[1]}
                     strokeWidth={2.5}
                     dot={{ r: 3 }}
@@ -337,7 +337,7 @@ export function ChartWidget({
                   <Area
                     type="monotone"
                     dataKey="concluidos"
-                    name="Concluídos"
+                    name="Resolvidos"
                     stroke={colors[1]}
                     fillOpacity={1}
                     fill="url(#colorSecondary)"

@@ -235,7 +235,7 @@ export async function generateProfessionalPDF({
     startY: currentY + 3,
     margin: { left: startX },
     tableWidth: colWidth1,
-    head: [["#", "Analista TI", "Concluídos", "Tempo Médio"]],
+    head: [["#", "Analista TI", "Resolvidos", "Tempo Médio"]],
     body: topTechRows.length > 0 ? topTechRows : [["-", "Sem registros no período", "0", "-"]],
     theme: "grid",
     styles: {

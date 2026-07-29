@@ -216,10 +216,10 @@ export async function runFullDatabaseSeed(): Promise<{
 
     console.log("[Seed] 6. Semeando Enums / Tabelas de Tickets (Status, Origem, Prioridade)...");
     const statusesData = [
-      { code: StatusType.EM_ATENDIMENTO, label: "Em Atendimento" },
-      { code: StatusType.CONCLUIDO, label: "Concluído" },
-      { code: StatusType.AGUARDANDO, label: "Aguardando" },
-      { code: StatusType.AGENDADO, label: "Agendado" },
+      { code: StatusType.ABERTO, label: "Aberto" },
+      { code: StatusType.RESOLVIDO, label: "Resolvido" },
+      { code: StatusType.AGUARDANDO_USUARIO, label: "Aguardando" },
+      { code: StatusType.AGUARDANDO_PECA, label: "Agendado" },
     ];
     let statusesCreated = 0;
     for (const st of statusesData) {

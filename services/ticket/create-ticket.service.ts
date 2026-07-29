@@ -83,14 +83,26 @@ export async function createTicket(
 
   const startTime = input.startTime ? new Date(input.startTime) : new Date();
   let endTime = input.endTime ? new Date(input.endTime) : null;
-  const status = input.status || "EM_ATENDIMENTO";
+  const status = input.status || "ABERTO";
 
-  if (status === "CONCLUIDO" && !endTime) {
+  if (status === "RESOLVIDO" && !endTime) {
     endTime = new Date();
   }
 
   const totalTimeMinutes = calculateTotalTimeMinutes(startTime, endTime);
   const ticketDateObj = input.ticketDate ? new Date(input.ticketDate) : new Date();
+
+  // Buscar SLA do serviço para calcular dueDate
+  const service = await prisma.service.findUnique({
+    where: { id: input.serviceId },
+    select: { slaHours: true }
+  });
+  
+  let dueDate: Date | null = null;
+  if (service?.slaHours) {
+    dueDate = new Date(ticketDateObj.getTime());
+    dueDate.setHours(dueDate.getHours() + service.slaHours);
+  }
 
   const ticket: any = await createTicketInMonthWithRetry(
     {
@@ -104,6 +116,7 @@ export async function createTicket(
       origin: input.origin || "MANUAL",
       priority: input.priority || "MEDIA",
       ticketDate: ticketDateObj,
+      dueDate,
       startTime,
       endTime,
       totalTimeMinutes,

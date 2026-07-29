@@ -46,7 +46,9 @@ export function TicketModal({
 }: TicketModalProps) {
   const isEditing = Boolean(ticketId);
 
-  const [activeTab, setActiveTab] = useState<"INFO" | "TIMELINE" | "COMMENTS">("INFO");
+  const [activeTab, setActiveTab] = useState<"INFO" | "TIMELINE" | "COMMENTS" | "ATTACHMENTS">("INFO");
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -59,7 +61,7 @@ export function TicketModal({
   const [technicianId, setTechnicianId] = useState("");
   const [problem, setProblem] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("EM_ATENDIMENTO");
+  const [status, setStatus] = useState("ABERTO");
   const [origin, setOrigin] = useState("MANUAL");
   const [priority, setPriority] = useState("MEDIA");
   const [startTime, setStartTime] = useState("");
@@ -90,7 +92,7 @@ export function TicketModal({
       setTechnicianId("");
       setProblem("");
       setDescription("");
-      setStatus("EM_ATENDIMENTO");
+      setStatus("ABERTO");
       setOrigin("MANUAL");
       setPriority("MEDIA");
       setStartTime(new Date().toISOString().slice(0, 16));
@@ -125,7 +127,7 @@ export function TicketModal({
         setTechnicianId(data.technicianId || "");
         setProblem(data.problem || "");
         setDescription(data.description || "");
-        setStatus(data.status || "EM_ATENDIMENTO");
+        setStatus(data.status || "ABERTO");
         setOrigin(data.origin || "MANUAL");
         setPriority(data.priority || "MEDIA");
         setStartTime(data.startTime ? new Date(data.startTime).toISOString().slice(0, 16) : "");
@@ -134,6 +136,11 @@ export function TicketModal({
         setTotalTimeMinutes(data.totalTimeMinutes || null);
         setHistoryEvents(data.history || []);
         setComments(data.comments || []);
+        
+        const attRes = await fetch(`/api/tickets/${id}/attachments`);
+        if (attRes.ok) {
+           setAttachments(await attRes.json());
+        }
       }
     } catch (err) {
       console.error("Erro ao carregar chamado:", err);
@@ -177,7 +184,7 @@ export function TicketModal({
   function getFormattedDuration(): string {
     let sTime = startTime ? new Date(startTime).getTime() : Date.now();
     let eTime = endTime ? new Date(endTime).getTime() : Date.now();
-    if (status === "CONCLUIDO" && !endTime) {
+    if (status === "RESOLVIDO" && !endTime) {
       eTime = Date.now();
     }
     const mins = Math.max(0, Math.round((eTime - sTime) / 60000));
@@ -236,6 +243,39 @@ export function TicketModal({
       alert(err.message || "Erro ao salvar chamado");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files || !e.target.files.length || !ticketId) return;
+    const file = e.target.files[0];
+    const allowed = ["image/png", "image/jpeg", "image/jpg", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+    if (!allowed.includes(file.type) && !file.name.match(/\.(png|jpg|jpeg|pdf|docx|xlsx)$/i)) {
+       alert("Formato não permitido. Envie PNG, JPG, PDF, DOCX ou XLSX.");
+       return;
+    }
+    
+    setUploadingAttachment(true);
+    const fd = new FormData();
+    fd.append("file", file);
+
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}/attachments`, {
+        method: "POST",
+        body: fd,
+      });
+      if (res.ok) {
+        const att = await res.json();
+        setAttachments([att, ...attachments]);
+      } else {
+        const err = await res.json();
+        alert(err.error || "Erro ao fazer upload");
+      }
+    } catch (err) {
+       console.error("Upload erro:", err);
+    } finally {
+       setUploadingAttachment(false);
+       e.target.value = ""; // clear input
     }
   }
 
@@ -317,6 +357,21 @@ export function TicketModal({
                 {comments.length > 0 && (
                   <Badge variant="secondary" className="ml-1.5 px-1 py-0 text-[10px]">
                     {comments.length}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant={activeTab === "ATTACHMENTS" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveTab("ATTACHMENTS")}
+                className="text-xs"
+              >
+                <FileText className="w-3.5 h-3.5 mr-1.5" />
+                Anexos
+                {attachments.length > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 px-1 py-0 text-[10px]">
+                    {attachments.length}
                   </Badge>
                 )}
               </Button>
@@ -449,10 +504,12 @@ export function TicketModal({
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
                       >
-                        <option value="EM_ATENDIMENTO">Em Atendimento</option>
-                        <option value="CONCLUIDO">Concluído</option>
-                        <option value="AGUARDANDO">Aguardando</option>
-                        <option value="AGENDADO">Agendado</option>
+                        <option value="ABERTO">Aberto</option>
+                        <option value="EM_ANDAMENTO">Em andamento</option>
+                        <option value="AGUARDANDO_USUARIO">Aguardando usuário</option>
+                        <option value="AGUARDANDO_PECA">Aguardando peça</option>
+                        <option value="RESOLVIDO">Resolvido</option>
+                        <option value="CANCELADO">Cancelado</option>
                       </select>
                     </div>
 
@@ -663,6 +720,38 @@ export function TicketModal({
                     ))
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* ABA: ANEXOS */}
+            {activeTab === "ATTACHMENTS" && (
+              <div className="space-y-4 py-2">
+                 <div className="flex flex-col gap-2 p-4 border border-dashed border-primary/40 rounded-lg bg-primary/5 items-center justify-center text-center hover:bg-primary/10 transition-colors">
+                    <p className="text-xs text-muted-foreground font-medium">Anexe arquivos úteis ao chamado (PNG, JPG, PDF, DOCX, XLSX)</p>
+                    <label className={`cursor-pointer inline-flex h-8 items-center justify-center rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground shadow transition-all hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] ${uploadingAttachment ? "opacity-50 pointer-events-none" : ""}`}>
+                        {uploadingAttachment ? "Enviando..." : "Selecionar Arquivo"}
+                        <input type="file" className="hidden" accept=".png,.jpg,.jpeg,.pdf,.docx,.xlsx" onChange={handleFileUpload} disabled={uploadingAttachment} />
+                    </label>
+                 </div>
+                 <div className="space-y-2 mt-4 max-h-[300px] overflow-y-auto">
+                    {attachments.length === 0 ? (
+                       <p className="text-xs text-muted-foreground text-center py-4 bg-muted/20 rounded-md border border-border/50">Nenhum anexo encontrado.</p>
+                    ) : (
+                       attachments.map((att) => (
+                          <div key={att.id} className="flex items-center justify-between p-3 border border-border/60 rounded-md bg-background shadow-sm hover:shadow-md transition-shadow group">
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                 <div className="bg-primary/10 p-2 rounded-md group-hover:bg-primary/20 transition-colors">
+                                    <FileText className="w-4 h-4 flex-shrink-0 text-primary" />
+                                 </div>
+                                 <span className="text-xs font-semibold truncate group-hover:text-primary transition-colors">{att.fileName}</span>
+                              </div>
+                              <a href={att.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] uppercase font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap ml-2">
+                                 Baixar
+                              </a>
+                          </div>
+                       ))
+                    )}
+                 </div>
               </div>
             )}
 
