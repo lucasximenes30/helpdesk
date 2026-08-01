@@ -4,23 +4,24 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { motion, type Variants } from "framer-motion";
 import {
-  TrendingUp,
-  RefreshCw,
-  Settings2,
+  TrendUp,
+  ArrowsClockwise,
+  Faders,
   Printer,
-  FileSpreadsheet,
+  FileXls,
   Clock,
-  CheckCircle2,
-  AlertCircle,
+  CheckCircle,
+  WarningCircle,
   Users,
-  Award,
-  Layers,
-  Building2,
-  Download,
-  Filter,
-  BarChart3,
-} from "lucide-react";
+  Medal,
+  Stack,
+  Buildings,
+  DownloadSimple,
+  Funnel,
+  ChartBar,
+} from "@phosphor-icons/react";
 import { DashboardSkeleton } from "@/modules/dashboard/DashboardSkeleton";
 import { ChartWidget, ChartType } from "@/modules/dashboard/charts/ChartWidgets";
 import {
@@ -38,6 +39,24 @@ import { generateProfessionalPDF } from "./generateProfessionalPDF";
 import { MonthYearSelector } from "@/components/common/MonthYearSelector";
 
 const STORAGE_KEY = "cg_helpdesk_dashboard_widgets_v1";
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 100, damping: 20 } 
+  }
+};
 
 export function ReportsClient() {
   const [loading, setLoading] = useState(true);
@@ -179,15 +198,13 @@ export function ReportsClient() {
   const visibleWidgets = widgets.filter((w) => {
     if (!w.visible) return false;
     if (reportMode === "EXECUTIVO") {
-      return ["bySector", "byOrigin", "byMonth", "byStatus"].includes(w.id);
+      return ["byOrigin", "byMonth", "byStatus"].includes(w.id);
     }
     if (reportMode === "OPERACIONAL") {
-      return ["byStatus", "byDay", "byWeek", "byService", "byOrigin"].includes(
-        w.id
-      );
+      return ["byStatus", "byDay", "byWeek", "byOrigin"].includes(w.id);
     }
     if (reportMode === "PRODUTIVIDADE") {
-      return ["byTechnician", "avgTimeByTechnician", "byService"].includes(w.id);
+      return ["avgTimeByTechnician"].includes(w.id);
     }
     if (reportMode === "PERFORMANCE") {
       return [
@@ -201,47 +218,49 @@ export function ReportsClient() {
   });
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* BARRA SUPERIOR EXECUTIVA DE RELATÓRIOS E BI */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card border border-border rounded-xl p-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
-            <BarChart3 className="h-5 w-5" />
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-12 pb-12"
+    >
+      {/* CABEÇALHO ART GALLERY (Minimalista, Espaçado) */}
+      <motion.div variants={itemVariants} className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 pb-6 border-b border-border/40">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <ChartBar weight="duotone" className="h-8 w-8 text-foreground" />
+            <Badge variant="outline" className="text-[10px] uppercase font-mono tracking-widest bg-background">
+              {reportMode}
+            </Badge>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-foreground">
-                Relatórios Executivos de BI & Indicadores
-              </h2>
-              <Badge variant="outline" className="text-[10px] uppercase font-mono">
-                {reportMode}
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Consolidados gerenciais em tempo real do Departamento de TI — CG
-              Construções
-            </p>
-          </div>
+          <h1 className="text-4xl font-display font-bold tracking-tight text-foreground">
+            Relatórios & BI
+          </h1>
+          <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+            Análise aprofundada de performance, SLA e volumetria do departamento de TI.
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Seletor de Mês */}
-          <MonthYearSelector
-            value={monthYear}
-            onChange={(my) => {
-              setMonthYear(my);
-              setPeriod("");
-            }}
-          />
+          <div className="bg-background rounded-lg border border-border/60 p-1">
+            <MonthYearSelector
+              value={monthYear}
+              onChange={(my) => {
+                setMonthYear(my);
+                setPeriod("");
+              }}
+            />
+          </div>
 
           {/* Seletor de Períodos Rápidos */}
-          <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/30">
+          <div className="flex rounded-lg border border-border/60 p-1 bg-background">
             {[
               { id: "TODAY", label: "Hoje" },
               { id: "YESTERDAY", label: "Ontem" },
               { id: "LAST_7_DAYS", label: "7 dias" },
               { id: "LAST_30_DAYS", label: "30 dias" },
-              { id: "THIS_MONTH", label: "Este Mês" },
+              { id: "THIS_MONTH", label: "Mês" },
               { id: "THIS_YEAR", label: "Ano" },
             ].map((p) => (
               <button
@@ -251,10 +270,10 @@ export function ReportsClient() {
                   setPeriod(p.id);
                   setMonthYear("");
                 }}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                   period === p.id && !monthYear
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-foreground text-background shadow-md"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
                 {p.label}
@@ -262,378 +281,277 @@ export function ReportsClient() {
             ))}
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadStats}
-            title="Atualizar Indicadores"
-            className="h-9"
-          >
-            <RefreshCw
-              className={`h-3.5 w-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`}
-            />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={loadStats}
+              title="Atualizar Indicadores"
+              className="h-10 w-10 rounded-xl"
+            >
+              <ArrowsClockwise
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setConfigModalOpen(true)}
-            className="h-9 font-medium"
-          >
-            <Settings2 className="h-3.5 w-3.5 mr-1.5" />
-            Personalizar Widgets
-          </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setConfigModalOpen(true)}
+              title="Personalizar Widgets"
+              className="h-10 w-10 rounded-xl"
+            >
+              <Faders className="h-4 w-4" />
+            </Button>
 
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => setExportModalOpen(true)}
-            className="h-9 font-semibold bg-primary hover:bg-primary/90"
-          >
-            <Printer className="h-3.5 w-3.5 mr-1.5" />
-            Exportar PDF Profissional
-          </Button>
+            <Button
+              variant="default"
+              onClick={() => setExportModalOpen(true)}
+              className="h-10 px-4 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Exportar
+            </Button>
+          </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* SELETOR DE MODOS DE RELATÓRIO EXECUTIVO (EXECUTIVO, OPERACIONAL, PRODUTIVIDADE, PERFORMANCE, PERSONALIZADO) */}
-      <div className="flex flex-wrap items-center gap-2 bg-muted/20 border border-border/60 rounded-lg p-2">
+      {/* SELETOR DE MODOS DE RELATÓRIO EXECUTIVO (Art Gallery Style) */}
+      <motion.div variants={itemVariants} className="flex flex-wrap items-stretch gap-3">
         {[
           {
             id: "EXECUTIVO",
-            label: "Executivo (C-Level)",
-            desc: "KPIs e visão institucional por Obras e Origem",
+            label: "Executivo",
+            desc: "Visão institucional",
           },
           {
             id: "OPERACIONAL",
-            label: "Operacional (Fila e Fluxo)",
-            desc: "Status em tempo real, evolução diária e semana",
+            label: "Operacional",
+            desc: "Fila e fluxo diário",
           },
           {
             id: "PRODUTIVIDADE",
-            label: "Produtividade (Equipe TI)",
-            desc: "Chamados resolvidos e tempo médio por técnico",
+            label: "Produtividade",
+            desc: "Equipe e tempos",
           },
           {
             id: "PERFORMANCE",
-            label: "Performance (SLA e Eficiência)",
-            desc: "Tempos de resposta e taxa de resolução rápida",
+            label: "Performance",
+            desc: "SLA e eficiência",
           },
           {
             id: "PERSONALIZADO",
-            label: "Personalizado (Livre)",
-            desc: "Todos os gráficos visíveis e ordenados por você",
+            label: "Personalizado",
+            desc: "Visão livre",
           },
         ].map((m) => (
           <button
             key={m.id}
             type="button"
             onClick={() => setReportMode(m.id as ReportMode)}
-            className={`flex-1 min-w-[170px] px-3 py-2 rounded-md text-left transition-all border ${
+            className={`flex-1 min-w-[160px] p-4 rounded-[1.5rem] text-left transition-all duration-300 border ${
               reportMode === m.id
-                ? "bg-card border-primary/50 text-foreground shadow-sm ring-1 ring-primary/20"
-                : "border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                ? "bg-foreground text-background shadow-xl scale-[1.02] border-transparent"
+                : "bg-card border-border/40 text-foreground hover:border-foreground/20 hover:bg-accent/50"
             }`}
           >
-            <p className="text-xs font-bold">{m.label}</p>
-            <p className="text-[10px] text-muted-foreground line-clamp-1">
+            <p className="text-sm font-display font-bold tracking-wide uppercase mb-1">{m.label}</p>
+            <p className={`text-xs ${reportMode === m.id ? 'text-background/70' : 'text-muted-foreground'}`}>
               {m.desc}
             </p>
           </button>
         ))}
-      </div>
+      </motion.div>
 
-      {/* LINHA DE 8 CARDS DE KPIS ANALÍTICOS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: Total de Chamados */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Total de Chamados
-              </span>
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
-                <FileSpreadsheet className="h-4 w-4" />
+      {/* KPIs NÍVEL 1: GRANDES NÚMEROS */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="glass-card rounded-[2rem] p-8 flex flex-col justify-between h-[200px] group hover-lift">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+              Total Ingressado
+            </span>
+            <FileXls weight="duotone" className="h-6 w-6 text-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div>
+            <div className="text-6xl font-display font-bold text-foreground mb-2">
+              {kpis.totalTickets?.value || 0}
+            </div>
+            {typeof kpis.totalTickets?.changePercent === "number" && (
+              <div className={`text-sm font-semibold flex items-center gap-1 ${kpis.totalTickets.changePercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                {kpis.totalTickets.changePercent >= 0 ? <TrendUp weight="bold" /> : <TrendUp weight="bold" className="rotate-180" />}
+                {Math.abs(kpis.totalTickets.changePercent)}% vs anterior
               </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-foreground">
-                {kpis.totalTickets?.value || 0}
-              </span>
-              {typeof kpis.totalTickets?.changePercent === "number" && (
-                <Badge
-                  variant="outline"
-                  className={`text-[11px] font-mono px-1.5 py-0.5 ${
-                    kpis.totalTickets.changePercent >= 0
-                      ? "text-emerald-500 border-emerald-500/30 bg-emerald-500/5"
-                      : "text-rose-500 border-rose-500/30 bg-rose-500/5"
-                  }`}
-                >
-                  {kpis.totalTickets.changePercent >= 0 ? "+" : ""}
-                  {kpis.totalTickets.changePercent}% vs ant.
-                </Badge>
-              )}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Volume total ingressado no período
-            </p>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </div>
 
-        {/* KPI 2: Aberto */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Aberto
-              </span>
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
-                <Clock className="h-4 w-4" />
+        <div className="glass-card rounded-[2rem] p-8 flex flex-col justify-between h-[200px] group hover-lift">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+              Resolvidos
+            </span>
+            <CheckCircle weight="duotone" className="h-6 w-6 text-success opacity-50 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div>
+            <div className="text-6xl font-display font-bold text-foreground mb-2">
+              {kpis.completed?.value || 0}
+            </div>
+            {typeof kpis.completed?.changePercent === "number" && (
+              <div className={`text-sm font-semibold flex items-center gap-1 ${kpis.completed.changePercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                {kpis.completed.changePercent >= 0 ? <TrendUp weight="bold" /> : <TrendUp weight="bold" className="rotate-180" />}
+                {Math.abs(kpis.completed.changePercent)}% vs anterior
               </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-amber-500">
-                {kpis.inProgress?.value || 0}
-              </span>
-              <span className="text-xs text-muted-foreground font-medium">
-                Ativos em fila
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Chamados com analistas em tratativa
-            </p>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </div>
 
-        {/* KPI 3: Resolvidos */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Resolvidos
-              </span>
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-emerald-500">
-                {kpis.completed?.value || 0}
-              </span>
-              {typeof kpis.completed?.changePercent === "number" && (
-                <Badge
-                  variant="outline"
-                  className={`text-[11px] font-mono px-1.5 py-0.5 ${
-                    kpis.completed.changePercent >= 0
-                      ? "text-emerald-500 border-emerald-500/30 bg-emerald-500/5"
-                      : "text-rose-500 border-rose-500/30 bg-rose-500/5"
-                  }`}
-                >
-                  {kpis.completed.changePercent >= 0 ? "+" : ""}
-                  {kpis.completed.changePercent}% vs ant.
-                </Badge>
-              )}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Atendimentos finalizados com sucesso
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* KPI 4: Aguardando & Agendados */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Pendências (Aguardando)
-              </span>
-              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
-                <AlertCircle className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-foreground">
-                {kpis.waiting?.value || 0}
-              </span>
-              <Badge variant="secondary" className="text-[11px]">
-                +{kpis.scheduled?.value || 0} Agendados
-              </Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Aguardando peças, fornecedor ou retorno
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* KPI 5: Tempo Médio de Atendimento */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Tempo Médio Total
-              </span>
-              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500">
-                <Clock className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-xl font-bold text-indigo-500 font-mono">
-                {kpis.avgTimeMinutes?.formatted || "0 min"}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                ({kpis.avgTimeMinutes?.value || 0} min)
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Média entre abertura e encerramento
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* KPI 6: Tempo Médio por Técnico */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Tempo Médio / Técnico
-              </span>
-              <div className="p-2 rounded-lg bg-teal-500/10 text-teal-500">
-                <Users className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-xl font-bold text-teal-500 font-mono">
-                {kpis.avgTimePerTech?.formatted || "0 min"}
-              </span>
-              <span className="text-xs text-muted-foreground">Esforço técnico</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Média balanceada por analista
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* KPI 7: Quantidade de Técnicos */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Técnicos Ativos (TI / ADMIN)
-              </span>
-              <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-500">
-                <Users className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-foreground">
-                {kpis.activeTechCount?.value || 0}
-              </span>
-              <span className="text-xs text-muted-foreground">Analistas</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Equipe habilitada a assumir chamados
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* KPI 8: Taxa de Resolução Rápida */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Taxa de Resolução
-              </span>
-              <div className="p-2 rounded-lg bg-pink-500/10 text-pink-500">
-                <Award className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-foreground font-mono">
+        <div className="glass-card rounded-[2rem] p-8 flex flex-col justify-between h-[200px] group hover-lift">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+              Taxa de Resolução
+            </span>
+            <Medal weight="duotone" className="h-6 w-6 text-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div>
+            <div className="flex items-baseline gap-1 mb-2">
+              <span className="text-6xl font-display font-bold text-foreground">
                 {kpis.totalTickets?.value > 0
-                  ? Math.round(
-                      ((kpis.completed?.value || 0) / kpis.totalTickets.value) *
-                        100
-                    )
+                  ? Math.round(((kpis.completed?.value || 0) / kpis.totalTickets.value) * 100)
                   : 0}
-                %
               </span>
-              <span className="text-xs text-muted-foreground">do volume</span>
+              <span className="text-2xl font-bold text-muted-foreground">%</span>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Chamados finalizados no período
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            <div className="text-sm font-medium text-muted-foreground">do volume ingressado</div>
+          </div>
+        </div>
 
-      {/* 3 CARDS DE RANKING (TOP TÉCNICOS, SERVIÇOS, SETORES) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="glass-card rounded-[2rem] p-8 flex flex-col justify-between h-[200px] group hover-lift bg-foreground text-background">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-background/60 uppercase tracking-widest">
+              Tempo Médio Total
+            </span>
+            <Clock weight="duotone" className="h-6 w-6 text-background opacity-50 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div>
+            <div className="text-4xl md:text-5xl font-display font-bold mb-2 tracking-tight">
+              {kpis.avgTimeMinutes?.formatted || "0 min"}
+            </div>
+            <div className="text-sm font-medium text-background/60">
+              ({kpis.avgTimeMinutes?.value || 0} minutos líquidos)
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* KPIs NÍVEL 2: BARRA DE STATUS MINIMALISTA */}
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x divide-border bg-card/40 border border-border/60 rounded-2xl overflow-hidden backdrop-blur-sm">
+        {/* Aberto */}
+        <div className="flex-1 w-full p-6 flex items-center justify-between hover:bg-muted/50 transition-colors">
+          <div className="flex items-center gap-3">
+            <Clock weight="fill" className="h-5 w-5 text-warning" />
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Em Fila</span>
+          </div>
+          <span className="text-3xl font-display font-bold text-foreground">{kpis.inProgress?.value || 0}</span>
+        </div>
+        {/* Pendências */}
+        <div className="flex-1 w-full p-6 flex items-center justify-between hover:bg-muted/50 transition-colors">
+          <div className="flex items-center gap-3">
+            <WarningCircle weight="fill" className="h-5 w-5 text-blue-500" />
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Aguardando</span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-display font-bold text-foreground">{kpis.waiting?.value || 0}</span>
+            <span className="text-sm font-semibold text-muted-foreground">(+{kpis.scheduled?.value || 0})</span>
+          </div>
+        </div>
+        {/* Tempo Médio por Técnico */}
+        <div className="flex-1 w-full p-6 flex items-center justify-between hover:bg-muted/50 transition-colors">
+          <div className="flex items-center gap-3">
+            <Users weight="fill" className="h-5 w-5 text-foreground" />
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">TMA Técnico</span>
+          </div>
+          <span className="text-2xl font-display font-bold text-foreground">{kpis.avgTimePerTech?.formatted || "0 min"}</span>
+        </div>
+        {/* Técnicos Ativos */}
+        <div className="flex-1 w-full p-6 flex items-center justify-between hover:bg-muted/50 transition-colors">
+          <div className="flex items-center gap-3">
+            <Users weight="fill" className="h-5 w-5 text-success" />
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Equipe Ativa</span>
+          </div>
+          <span className="text-3xl font-display font-bold text-foreground">{kpis.activeTechCount?.value || 0}</span>
+        </div>
+      </motion.div>
+
+      {/* 3 CARDS DE RANKING (Minimalistas) */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-16 pt-16 border-t border-border/40">
         {/* Ranking 1: Top Técnicos */}
-        <Card className="border-border bg-card shadow-sm">
-          <CardHeader className="pb-3 border-b border-border/60">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <Award className="h-4 w-4 text-primary" />
-              Top Técnicos em Resolução
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-3">
+        <div className="flex flex-col">
+          <div className="pb-4 mb-6">
+            <h3 className="text-lg font-display font-bold flex items-center gap-3 text-foreground">
+              <Medal weight="duotone" className="h-6 w-6 text-muted-foreground" />
+              Top Técnicos
+            </h3>
+          </div>
+          <div className="space-y-6">
             {rankings.topTechnicians?.length > 0 ? (
-              rankings.topTechnicians.map((t: any, idx: number) => (
-                <div
-                  key={t.id}
-                  className="flex items-center justify-between text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-[10px]">
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-foreground">{t.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{t.email}</p>
+              rankings.topTechnicians.slice(0, 5).map((t: any, idx: number) => {
+                const maxCount = rankings.topTechnicians[0].count;
+                return (
+                  <div key={t.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-full bg-muted text-foreground font-bold flex items-center justify-center text-xs">
+                          {idx + 1}
+                        </span>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-foreground">{t.name}</span>
+                          <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{t.avgTimeMinutes} min médio</span>
+                        </div>
+                      </div>
+                      <span className="font-display font-bold text-lg text-foreground">{t.count}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-foreground rounded-full transition-all duration-1000 ease-out"
+                        style={{
+                          width: `${Math.min(100, Math.max(8, (t.count / maxCount) * 100))}%`,
+                        }}
+                      />
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold font-mono text-foreground">
-                      {t.count} resolvidos
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {t.avgTimeMinutes} min médio
-                    </p>
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-6">
-                Nenhum chamado resolvido por técnicos no período.
+              <p className="text-sm text-muted-foreground py-6">
+                Nenhum chamado resolvido no período.
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Ranking 2: Top Serviços */}
-        <Card className="border-border bg-card shadow-sm">
-          <CardHeader className="pb-3 border-b border-border/60">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <Layers className="h-4 w-4 text-primary" />
-              Top Serviços mais Acionados
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-3">
+        <div className="flex flex-col">
+          <div className="pb-4 mb-6">
+            <h3 className="text-lg font-display font-bold flex items-center gap-3 text-foreground">
+              <Stack weight="duotone" className="h-6 w-6 text-muted-foreground" />
+              Top Serviços
+            </h3>
+          </div>
+          <div className="space-y-6">
             {rankings.topServices?.length > 0 ? (
-              rankings.topServices.map((s: any) => (
-                <div key={s.id} className="space-y-1 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground truncate max-w-[180px]">
+              rankings.topServices.slice(0, 5).map((s: any) => (
+                <div key={s.id} className="space-y-2">
+                  <div className="flex items-end justify-between">
+                    <span className="font-semibold text-foreground truncate max-w-[200px]">
                       {s.name}
                     </span>
-                    <span className="font-bold font-mono text-foreground">
-                      {s.count} ({s.percentage}%)
+                    <span className="font-display font-bold text-lg text-foreground">
+                      {s.count}
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary rounded-full transition-all"
+                      className="h-full bg-foreground/60 rounded-full transition-all duration-1000 ease-out"
                       style={{
                         width: `${Math.min(100, Math.max(8, s.percentage))}%`,
                       }}
@@ -642,36 +560,36 @@ export function ReportsClient() {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-6">
+              <p className="text-sm text-muted-foreground py-6">
                 Nenhum serviço registrado no período.
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Ranking 3: Top Setores */}
-        <Card className="border-border bg-card shadow-sm">
-          <CardHeader className="pb-3 border-b border-border/60">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-primary" />
-              Setores institucionais com Maior Volume
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-3">
+        <div className="flex flex-col">
+          <div className="pb-4 mb-6">
+            <h3 className="text-lg font-display font-bold flex items-center gap-3 text-foreground">
+              <Buildings weight="duotone" className="h-6 w-6 text-muted-foreground" />
+              Setores Acionadores
+            </h3>
+          </div>
+          <div className="space-y-6">
             {rankings.topSectors?.length > 0 ? (
-              rankings.topSectors.map((sec: any) => (
-                <div key={sec.id} className="space-y-1 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground truncate max-w-[180px]">
+              rankings.topSectors.slice(0, 5).map((sec: any) => (
+                <div key={sec.id} className="space-y-2">
+                  <div className="flex items-end justify-between">
+                    <span className="font-semibold text-foreground truncate max-w-[200px]">
                       {sec.name}
                     </span>
-                    <span className="font-bold font-mono text-foreground">
-                      {sec.count} ({sec.percentage}%)
+                    <span className="font-display font-bold text-lg text-foreground">
+                      {sec.count}
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-emerald-500 rounded-full transition-all"
+                      className="h-full bg-foreground/30 rounded-full transition-all duration-1000 ease-out"
                       style={{
                         width: `${Math.min(100, Math.max(8, sec.percentage))}%`,
                       }}
@@ -680,16 +598,16 @@ export function ReportsClient() {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-6">
+              <p className="text-sm text-muted-foreground py-6">
                 Nenhum setor registrado no período.
               </p>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </motion.div>
 
-      {/* GRADE DE WIDGETS INTERATIVOS (FILTRADA PELO MODO ATIVO) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* GRADE DE WIDGETS INTERATIVOS (Art Gallery Bento Grid) */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16 pt-16 border-t border-border/40">
         {visibleWidgets
           .sort((a, b) => a.order - b.order)
           .map((widget) => {
@@ -702,9 +620,9 @@ export function ReportsClient() {
             const unit = widget.id.startsWith("avgTime") ? "min" : "chamados";
 
             return (
-              <Card
+              <div
                 key={widget.id}
-                className={`border-border bg-card shadow-sm hover:shadow-md transition-all flex flex-col ${
+                className={`glass-card rounded-[2rem] p-6 flex flex-col ${
                   widget.colSpan === 3
                     ? "md:col-span-2 lg:col-span-3"
                     : widget.colSpan === 2
@@ -712,17 +630,17 @@ export function ReportsClient() {
                     : "col-span-1"
                 }`}
               >
-                <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border/60">
+                <div className="flex flex-row items-center justify-between pb-4 mb-4">
                   <div>
-                    <CardTitle className="text-sm font-bold text-foreground">
+                    <h3 className="text-lg font-display font-bold text-foreground">
                       {widget.title}
-                    </CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
                       {widget.description}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <select
                       value={widget.currentType}
                       onChange={(e) => {
@@ -736,7 +654,7 @@ export function ReportsClient() {
                         );
                         saveWidgets(next);
                       }}
-                      className="h-7 px-2 text-[11px] font-semibold rounded border border-border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="h-8 px-3 text-xs font-semibold rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors focus:outline-none focus:ring-1 focus:ring-foreground"
                       title="Alternar visualização"
                     >
                       {widget.allowedTypes.map((type) => (
@@ -754,28 +672,28 @@ export function ReportsClient() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-8 w-8 rounded-lg hover:bg-muted/50"
                       onClick={() => handleExportCSV(widget)}
                       title="Exportar em CSV"
                     >
-                      <Download className="h-3.5 w-3.5 text-muted-foreground" />
+                      <DownloadSimple className="h-4 w-4 text-foreground" />
                     </Button>
                   </div>
-                </CardHeader>
+                </div>
 
-                <CardContent className="p-4 flex-1">
+                <div className="flex-1 w-full relative min-h-[300px]">
                   <ChartWidget
                     data={chartData}
                     type={widget.currentType}
-                    height={270}
+                    height={300}
                     unit={unit}
                     isTimeSeries={isTimeSeries}
                   />
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
-      </div>
+      </motion.div>
 
       {/* Modal de Customização de Layout (ADMIN) */}
       <WidgetConfigModal
@@ -794,6 +712,6 @@ export function ReportsClient() {
         periodLabel={stats?.periodRange?.label}
         onGeneratePDF={handleGeneratePDF}
       />
-    </div>
+    </motion.div>
   );
 }

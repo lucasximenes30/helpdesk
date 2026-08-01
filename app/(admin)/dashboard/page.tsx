@@ -15,26 +15,7 @@ export const metadata: Metadata = {
 export default function DashboardPage() {
   return (
     <PageContainer>
-      <PageHeader
-        title="Dashboard Operacional"
-        breadcrumb={["Início", "Dashboard"]}
-        description="Acompanhe o fluxo diário de atendimentos, chamados em tratativa e atalhos rápidos da equipe de TI."
-      >
-        <Link href="/relatorios">
-          <Button variant="outline" size="sm" className="font-semibold mr-2">
-            <BarChart3 className="h-4 w-4 mr-1.5 text-primary" />
-            Relatórios C-Level & BI
-          </Button>
-        </Link>
-        <Link href="/chamados">
-          <Button size="sm" className="font-semibold">
-            <Plus className="h-4 w-4 mr-1.5" />
-            Abrir Novo Chamado
-          </Button>
-        </Link>
-      </PageHeader>
-
-      <div className="mt-6">
+      <div className="flex flex-col h-full w-full">
         <OperationalDashboardClient />
       </div>
     </PageContainer>

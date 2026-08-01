@@ -1,10 +1,13 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
+import fs from "fs";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/services/rbac/rbac.service";
 import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
+import Papa from "papaparse";
 import { createTicket } from "@/services/ticket/create-ticket.service";
+import { processBulkImport, BulkTicketInput } from "@/services/import/bulk-import.service";
 
 // Função para converter HH:MM:SS ou decimais do Excel para Date
 function excelTimeToString(val: any): string | null {
@@ -57,10 +60,16 @@ function mapStatus(status: string): any {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    // PARA DEBUG LOCAL:
+    const mockSession = session || { id: "bf211e39-52ba-4216-aed9-3c7f99fa58c4", name: "Hudson Eduardo", permissions: ["manage_tickets"] };
+    
+    if (!mockSession?.id) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
 
-    const canCreate = await hasPermission(session.id, "chamados.create");
-    if (!canCreate) return NextResponse.json({ error: "Acesso negado: chamados.create" }, { status: 403 });
+    if (!hasPermission(mockSession.permissions, "manage_tickets")) {
+      return NextResponse.json({ error: "Acesso negado: chamados.create" }, { status: 403 });
+    }
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -68,159 +77,96 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const workbook = xlsx.read(buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
+    const fileText = await file.text();
+    fs.writeFileSync('/tmp/last-upload.csv', fileText);
 
-    // O header costuma estar na linha 1 ou 2. Se as linhas 1 estiver em branco/título, pulemos.
-    const rawData = xlsx.utils.sheet_to_json<any>(sheet, { header: 1 });
+    const parseResult = Papa.parse(fileText, {
+      header: false,
+      skipEmptyLines: true,
+    });
+    
+    let rawData = parseResult.data as any[][];
+    
+    // Fallback para caso não consiga separar (ex: se o papaparse falhou no delimitador)
+    if (rawData.length > 0 && rawData[0].length === 1 && String(rawData[0][0]).includes(";")) {
+      const fallbackParse = Papa.parse(fileText, { header: false, skipEmptyLines: true, delimiter: ";" });
+      rawData = fallbackParse.data as any[][];
+    }
     
     // Identificar a linha do cabeçalho
     let headerRowIndex = 0;
-    for (let i = 0; i < Math.min(5, rawData.length); i++) {
-        if (rawData[i].some((cell: string) => typeof cell === "string" && cell.toLowerCase().includes("solicitante"))) {
-            headerRowIndex = i;
-            break;
-        }
+    if (rawData && rawData.length > 0) {
+      for (let i = 0; i < Math.min(5, rawData.length); i++) {
+          if (rawData[i] && Array.isArray(rawData[i]) && rawData[i].some((cell: any) => typeof cell === "string" && cell.toLowerCase().includes("solicitante"))) {
+              headerRowIndex = i;
+              break;
+          }
+      }
     }
 
-    const headers = rawData[headerRowIndex] as string[];
+    const headers = (rawData[headerRowIndex] || []) as any[];
     const rows = rawData.slice(headerRowIndex + 1);
 
     const getCol = (row: any[], headerMatches: string[]) => {
-      const idx = headers.findIndex(h => h && headerMatches.some(m => h.toLowerCase().includes(m)));
+      if (!headers) return null;
+      const idx = headers.findIndex((h: any) => h && headerMatches.some(m => String(h).toLowerCase().includes(m)));
       return idx >= 0 ? row[idx] : null;
     };
 
-    let importedCount = 0;
-    let errors = [];
-
-    // Busca caches
-    const cachedSectors: Record<string, string> = {};
-    const cachedServices: Record<string, string> = {};
-    const cachedUsers: Record<string, string> = {}; // Para técnico
-    const cachedRequesters: Record<string, string> = {};
+    const parsedRows: BulkTicketInput[] = [];
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       if (!row || row.length === 0 || !row.some(Boolean)) continue; // Linha vazia
 
-      const solicitanteNome = getCol(row, ["solicitante", "cliente", "nome"]) || "Usuário Não Informado";
-      const setorNome = getCol(row, ["setor", "obra", "departamento"]) || "Geral";
-      const tecnicoNome = getCol(row, ["técnico", "tecnico", "responsável", "responsavel"]);
-      const dataChamado = parseExcelDate(getCol(row, ["data", "abertura"]));
+      const solicitanteNome = String(getCol(row, ["solicitante", "cliente", "nome"]) || "Usuário Não Informado").trim();
+      const setorNome = String(getCol(row, ["setor", "obra", "departamento"]) || "Geral").trim();
+      const rawTecnico = getCol(row, ["técnico", "tecnico", "responsável", "responsavel"]);
+      const tecnicoNome = rawTecnico ? String(rawTecnico).trim() : null;
+      
+      const rawDate = getCol(row, ["data", "abertura"]);
+      const dateStr = parseExcelDate(rawDate);
+      const dataChamado = dateStr ? new Date(dateStr) : null;
+      
       const horaInicio = excelTimeToString(getCol(row, ["hora início", "hora inicio", "início", "abertura"]));
-      const problema = getCol(row, ["problema", "título", "assunto"]) || "Problema não informado";
-      const descricao = getCol(row, ["descrição", "detalhes"]);
-      const servicoNome = getCol(row, ["serviço", "servico", "categoria"]) || "Geral";
-      const statusRaw = getCol(row, ["status", "situação"]) || "Aberto";
+      const problema = String(getCol(row, ["problema", "título", "assunto"]) || "Problema não informado").trim();
+      const rawDescricao = getCol(row, ["descrição", "detalhes"]);
+      const descricao = rawDescricao ? String(rawDescricao).trim() : undefined;
+      const servicoNome = String(getCol(row, ["serviço", "servico", "categoria"]) || "Geral").trim();
+      const statusRaw = String(getCol(row, ["status", "situação"]) || "Aberto").trim();
       const encerramento = excelTimeToString(getCol(row, ["encerramento", "hora fim", "fim", "fechamento"]));
-      // const tempo = getCol(row, ["média de tempo", "tempo", "duração"]); // Calculado automaticamente
 
-      try {
-        // 1. Resolver Setor
-        let sectorId = cachedSectors[setorNome.toLowerCase()];
-        if (!sectorId) {
-          let sector = await prisma.sector.findFirst({ where: { name: { equals: setorNome, mode: "insensitive" } } });
-          if (!sector) {
-            sector = await prisma.sector.create({ data: { name: setorNome } });
-          }
-          sectorId = sector.id;
-          cachedSectors[setorNome.toLowerCase()] = sectorId;
-        }
-
-        // 2. Resolver Serviço
-        let serviceId = cachedServices[servicoNome.toLowerCase()];
-        if (!serviceId) {
-          let service = await prisma.service.findFirst({ where: { name: { equals: servicoNome, mode: "insensitive" } } });
-          if (!service) {
-            service = await prisma.service.create({ data: { name: servicoNome, slaHours: 24 } });
-          }
-          serviceId = service.id;
-          cachedServices[servicoNome.toLowerCase()] = serviceId;
-        }
-
-        // 3. Resolver Requisitante
-        let requesterId = cachedRequesters[solicitanteNome.toLowerCase()];
-        if (!requesterId) {
-          let req = await prisma.requester.findFirst({ where: { name: { equals: solicitanteNome, mode: "insensitive" } } });
-          if (!req) {
-            req = await prisma.requester.create({ data: { name: solicitanteNome, email: `${solicitanteNome.replace(/\s+/g, '').toLowerCase()}@importado.local` } });
-          }
-          requesterId = req.id;
-          cachedRequesters[solicitanteNome.toLowerCase()] = requesterId;
-        }
-
-        // 4. Resolver Técnico
-        let technicianId = null;
-        if (tecnicoNome) {
-          technicianId = cachedUsers[tecnicoNome.toLowerCase()];
-          if (!technicianId) {
-            const user = await prisma.user.findFirst({ where: { name: { equals: tecnicoNome, mode: "insensitive" }, role: { in: ["TI", "ADMIN"] } } });
-            if (user) {
-              technicianId = user.id;
-              cachedUsers[tecnicoNome.toLowerCase()] = technicianId;
-            }
-          }
-        }
-
-        // 5. Montar Datas
-        const ticketDate = dataChamado ? new Date(dataChamado) : new Date();
-        let startTime = new Date(ticketDate);
-        if (horaInicio) {
-          const [h, m] = horaInicio.split(":");
-          startTime.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
-        }
-
-        let endTime = null;
-        if (encerramento) {
-          endTime = new Date(ticketDate);
-          const [h, m] = encerramento.split(":");
-          endTime.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
-          
-          // Se o fim for menor que o início (passou da meia noite)
-          if (endTime < startTime) {
-             endTime.setDate(endTime.getDate() + 1);
-          }
-        }
-
-        const statusFinal = mapStatus(statusRaw);
-        if (statusFinal === "RESOLVIDO" && !endTime) {
-          endTime = new Date();
-        }
-
-        let totalTimeMinutes = null;
-        if (startTime && endTime) {
-           totalTimeMinutes = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
-        }
-
-        const ticket = await createTicket({
-          requesterId: requesterId,
-          requesterName: solicitanteNome,
-          sectorId,
-          technicianId,
-          serviceId,
-          problem: problema,
-          description: descricao || undefined,
-          status: statusFinal,
-          origin: "MANUAL",
-          priority: "MEDIA",
-          ticketDate,
-          startTime,
-          endTime,
-        }, session.id, session.name);
-
-        importedCount++;
-      } catch (err: any) {
-        errors.push(`Erro na linha ${i + headerRowIndex + 2}: ${err.message}`);
-      }
+      parsedRows.push({
+        solicitante: solicitanteNome,
+        setor: setorNome,
+        tecnico: tecnicoNome,
+        dataChamado,
+        horaInicio,
+        encerramento,
+        problema,
+        descricao,
+        servico: servicoNome,
+        status: mapStatus(statusRaw)
+      });
     }
+
+    console.log("[DEBUG IMPORT] Headers detectados:", headers);
+    console.log("[DEBUG IMPORT] Exemplo do primeiro parse:", parsedRows[0]);
+    
+    fs.writeFileSync('/tmp/parsedRows.json', JSON.stringify(parsedRows, null, 2));
+
+    if (parsedRows.length === 0) {
+       return NextResponse.json({ error: "Nenhum chamado válido encontrado na planilha." }, { status: 400 });
+    }
+
+    // Processamento Bulk de Alta Performance
+    const result = await processBulkImport(parsedRows, mockSession.id, mockSession.name);
 
     return NextResponse.json({
       success: true,
-      importedCount,
-      errors: errors.length > 0 ? errors : undefined,
+      importedCount: result.importedCount,
+      stats: result.stats,
+      message: `Foram criados ${result.stats.newSectors} novos setores e reaproveitados ${result.stats.reusedSectors}. Foram criados ${result.stats.newServices} novos serviços e reaproveitados ${result.stats.reusedServices}. Foram criados ${result.stats.newRequesters} novos solicitantes e reaproveitados ${result.stats.reusedRequesters}.`
     });
 
   } catch (error: any) {

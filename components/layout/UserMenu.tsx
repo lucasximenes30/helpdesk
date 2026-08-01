@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LogOut, User, Shield, Building2 } from "lucide-react";
+import { SignOut, User, Shield, Buildings } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { ROLE_LABELS, ROLE_COLORS } from "@/utils/rbac";
@@ -41,7 +41,7 @@ export function UserMenu() {
               {user?.name || "Administrador"}
             </span>
             <span className="text-xs text-muted-foreground mt-0.5">
-              {user?.email || "admin@cgconstrucoes.com.br"}
+              {user?.email || "Usuário não autenticado"}
             </span>
           </div>
         </button>
@@ -53,7 +53,7 @@ export function UserMenu() {
               {user?.name || "Administrador"}
             </p>
             <p className="text-xs leading-none text-muted-foreground truncate">
-              {user?.email || "admin@cgconstrucoes.com.br"}
+              {user?.email || "Usuário não autenticado"}
             </p>
             <div className="flex items-center gap-1.5 pt-1.5">
               <Badge
@@ -73,7 +73,7 @@ export function UserMenu() {
           <span>Meu Perfil</span>
         </DropdownMenuItem>
         <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <Buildings className="h-4 w-4 text-muted-foreground" />
           <span>{user?.department || "Gestão / TI"}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -81,7 +81,7 @@ export function UserMenu() {
           onClick={logout}
           className="flex items-center gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
         >
-          <LogOut className="h-4 w-4" />
+          <SignOut className="h-4 w-4" />
           <span className="font-medium">Sair do sistema</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

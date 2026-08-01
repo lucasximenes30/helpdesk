@@ -265,7 +265,9 @@ export async function runFullDatabaseSeed(): Promise<{
     console.log("[Seed] 7. Semeando Administrador Inicial e Técnicos (Lucas, Hudson)...");
     const adminEmail = process.env.ADMIN_EMAIL || "admin@cgconstrucoes.com.br";
     const adminPass = process.env.ADMIN_PASSWORD || "admin123";
-    const defaultTiPass = "ti123456";
+    const lucasEmail = process.env.LUCAS_EMAIL || "lucas@cgconstrucoes.com.br";
+    const hudsonEmail = process.env.HUDSON_EMAIL || "hudson@cgconstrucoes.com.br";
+    const defaultTiPass = process.env.TI_PASSWORD || "ti123456";
 
     const adminRole = await prisma.role.findUnique({ where: { name: RoleType.ADMIN } });
     const tiRole = await prisma.role.findUnique({ where: { name: RoleType.TI } });
@@ -283,7 +285,7 @@ export async function runFullDatabaseSeed(): Promise<{
       },
       {
         name: "Lucas",
-        email: "lucas@cgconstrucoes.com.br",
+        email: lucasEmail,
         password: await bcrypt.hash(defaultTiPass, 10),
         role: RoleType.TI,
         roleId: tiRole?.id || null,
@@ -292,7 +294,7 @@ export async function runFullDatabaseSeed(): Promise<{
       },
       {
         name: "Hudson",
-        email: "hudson@cgconstrucoes.com.br",
+        email: hudsonEmail,
         password: await bcrypt.hash(defaultTiPass, 10),
         role: RoleType.TI,
         roleId: tiRole?.id || null,

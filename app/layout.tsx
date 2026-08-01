@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Outfit, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/providers/app-providers";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
+const jetBrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
 
 export const metadata: Metadata = {
   title: "CG Construções HelpDesk Pro — Sistema Profissional de Atendimento TI",
@@ -24,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body
-        className={`${inter.variable} min-h-screen bg-background font-sans antialiased`}
+        className={`${outfit.variable} ${spaceGrotesk.variable} ${jetBrainsMono.variable} min-h-screen bg-background font-sans antialiased`}
       >
         <AppProviders>{children}</AppProviders>
       </body>

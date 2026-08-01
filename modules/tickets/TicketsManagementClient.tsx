@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { DataTable, Column } from "@/components/common/DataTable";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -14,27 +15,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { motion, type Variants } from "framer-motion";
 import {
   Plus,
-  Search,
-  MoreHorizontal,
-  Edit,
-  UserCheck,
-  CheckCircle2,
+  MagnifyingGlass,
+  DotsThree,
+  PencilSimple,
+  UserCircleCheck,
+  CheckCircle,
   Archive,
-  Trash2,
+  Trash,
   Copy,
   Clock,
-  AlertTriangle,
+  WarningCircle,
   FileText,
-  Filter,
-  ArrowUpDown,
-} from "lucide-react";
+  Faders,
+  ArrowsDownUp,
+  X,
+  ArrowsClockwise,
+} from "@phosphor-icons/react";
 import { TicketModal } from "./TicketModal";
 import { AssignTechnicianModal, ChangeStatusModal } from "./QuickActionModals";
 import { MonthYearSelector } from "@/components/common/MonthYearSelector";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
+import { ManagerialDashboard } from "@/components/reports/ManagerialDashboard";
 import { ImportExcelModal } from "./ImportExcelModal";
 
 export interface TicketRow {
@@ -59,17 +62,37 @@ export interface TicketRow {
   _count?: { comments: number; history: number };
 }
 
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 100, damping: 20 } 
+  }
+};
+
 export function TicketsManagementClient() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("query") || "";
+  
   const [tickets, setTickets] = useState<TicketRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Auxiliares (Setores, Serviços e Técnicos)
   const [sectors, setSectors] = useState<Array<{ id: string; name: string }>>([]);
   const [services, setServices] = useState<Array<{ id: string; name: string; category?: string | null }>>([]);
   const [technicians, setTechnicians] = useState<Array<{ id: string; name: string; email: string }>>([]);
 
-  // Filters & Search
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [sectorFilter, setSectorFilter] = useState<string>("ALL");
   const [serviceFilter, setServiceFilter] = useState<string>("ALL");
@@ -80,28 +103,26 @@ export function TicketsManagementClient() {
   const [sortBy, setSortBy] = useState<"ticketDate" | "totalTimeMinutes" | "requester" | "service">("ticketDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  // Pagination
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  // Modals state
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
-  // Quick action modals
   const [assignTechModalOpen, setAssignTechModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [activeTicket, setActiveTicket] = useState<TicketRow | null>(null);
 
-  // Confirm delete / archive
   const [confirmDelete, setConfirmDelete] = useState<TicketRow | null>(null);
   const [confirmArchive, setConfirmArchive] = useState<TicketRow | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
 
-  // KPIs calculados com base na listagem
+  const [managerialDashboardOpen, setManagerialDashboardOpen] = useState(false);
+  const [managerialDashboardTickets, setManagerialDashboardTickets] = useState<TicketRow[]>([]);
+
   const totalInAttendance = tickets.filter((t) => t.status === "ABERTO").length;
   const totalCompleted = tickets.filter((t) => t.status === "RESOLVIDO").length;
   const totalWaiting = tickets.filter((t) => t.status === "AGUARDANDO_USUARIO").length;
@@ -144,7 +165,7 @@ export function TicketsManagementClient() {
       params.set("limit", String(limit));
       params.set("sortBy", sortBy);
       params.set("sortOrder", sortOrder);
-      if (query.trim()) params.set("query", query.trim());
+      if (debouncedQuery.trim()) params.set("query", debouncedQuery.trim());
       if (statusFilter !== "ALL") params.set("status", statusFilter);
       if (sectorFilter !== "ALL") params.set("sectorId", sectorFilter);
       if (serviceFilter !== "ALL") params.set("serviceId", serviceFilter);
@@ -170,7 +191,7 @@ export function TicketsManagementClient() {
     limit,
     sortBy,
     sortOrder,
-    query,
+    debouncedQuery,
     statusFilter,
     sectorFilter,
     serviceFilter,
@@ -185,10 +206,16 @@ export function TicketsManagementClient() {
   }, [loadAuxiliaryData]);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
     fetchTickets();
   }, [fetchTickets]);
 
-  // Formatar duração (12 min, 1 h 20 min)
   function formatTimeBadge(minutes: number | null): string {
     if (minutes === null || minutes === undefined || minutes < 0) return "Em and.";
     if (minutes === 0) return "< 1 min";
@@ -199,7 +226,6 @@ export function TicketsManagementClient() {
     return `${h} h ${m} min`;
   }
 
-  // Rótulo de Status (Minimalista Linear-like)
   function renderStatusBadge(status: string) {
     switch (status) {
       case "ABERTO":
@@ -231,7 +257,6 @@ export function TicketsManagementClient() {
     }
   }
 
-  // Quick assign technician
   async function handleSaveTechnician(technicianId: string | null) {
     if (!activeTicket) return;
     try {
@@ -247,7 +272,6 @@ export function TicketsManagementClient() {
     }
   }
 
-  // Quick change status
   async function handleSaveStatus(newStatus: string) {
     if (!activeTicket) return;
     try {
@@ -263,20 +287,6 @@ export function TicketsManagementClient() {
     }
   }
 
-  // Duplicate ticket
-  async function handleDuplicateTicket(t: TicketRow) {
-    try {
-      const res = await fetch(`/api/tickets/${t.id}/duplicate`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error("Erro ao duplicar chamado");
-      fetchTickets();
-    } catch (err: any) {
-      alert(err.message || "Erro ao duplicar chamado");
-    }
-  }
-
-  // Archive ticket
   async function handleArchiveConfirm() {
     if (!confirmArchive) return;
     try {
@@ -293,7 +303,6 @@ export function TicketsManagementClient() {
     }
   }
 
-  // Soft Delete
   async function handleDeleteConfirm() {
     if (!confirmDelete) return;
     try {
@@ -308,52 +317,21 @@ export function TicketsManagementClient() {
     }
   }
 
-  // Export to PDF
-  async function exportToPDF() {
+  async function openManagerialDashboard() {
     setExportingPdf(true);
     try {
       const params = new URLSearchParams({
-        query, status: statusFilter, sectorId: sectorFilter, serviceId: serviceFilter, technicianId: technicianFilter, origin: originFilter, isArchived: String(isArchived), monthYear: monthYear || "", format: "json"
+        query: debouncedQuery, status: statusFilter, sectorId: sectorFilter, serviceId: serviceFilter, technicianId: technicianFilter, origin: originFilter, isArchived: String(isArchived), monthYear: monthYear || "", format: "json"
       });
       const res = await fetch(`/api/tickets/export?${params.toString()}`);
       if (!res.ok) throw new Error("Erro ao buscar dados");
       const data: TicketRow[] = await res.json();
-
-      const doc = new jsPDF("landscape");
       
-      // Title
-      doc.setFontSize(16);
-      doc.text("Relatório de Chamados - HelpDesk Pro", 14, 15);
-      doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 22);
-
-      const tableColumn = ["Número", "Data", "Solicitante", "Setor", "Serviço", "Técnico", "Problema", "Status", "Prioridade", "Tempo"];
-      const tableRows = data.map(t => [
-        t.ticketNumber + (t.ticketMonthYear ? `/${t.ticketMonthYear.split('-')[0]}` : ''),
-        new Date(t.ticketDate).toLocaleDateString('pt-BR'),
-        t.requester.name,
-        t.sector.name,
-        t.service.name,
-        t.technician?.name || "Fila Geral",
-        t.problem,
-        t.status,
-        t.priority,
-        t.totalTimeMinutes ? `${t.totalTimeMinutes} min` : ""
-      ]);
-
-      (doc as any).autoTable({
-        head: [tableColumn],
-        body: tableRows,
-        startY: 30,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [15, 23, 42] }, // Slate 900
-      });
-
-      doc.save(`relatorio-chamados-${Date.now()}.pdf`);
+      setManagerialDashboardTickets(data);
+      setManagerialDashboardOpen(true);
     } catch (error) {
-      console.error("Erro ao exportar PDF:", error);
-      alert("Erro ao exportar PDF.");
+      console.error("Erro ao buscar dados para o relatório:", error);
+      alert("Erro ao buscar dados para o relatório.");
     } finally {
       setExportingPdf(false);
     }
@@ -448,7 +426,7 @@ export function TicketsManagementClient() {
            if (now > due) {
               slaColor = "text-red-500 font-bold";
               slaText = " (Atrasado)";
-           } else if (due - now < 3600000) { // Menos de 1 hora
+           } else if (due - now < 3600000) {
               slaColor = "text-amber-500 font-bold";
               slaText = " (Critico)";
            } else {
@@ -464,7 +442,7 @@ export function TicketsManagementClient() {
             </span>
             {item.dueDate && item.status !== "RESOLVIDO" && item.status !== "CANCELADO" && (
               <span className={`text-[9px] ${slaColor}`}>
-                {new Date(item.dueDate).toLocaleTimeString("pt-BR", {hour: '2-digit', minute:'2-digit'})} {slaText}
+                {new Date(item.dueDate).toLocaleDateString("pt-BR")} às {new Date(item.dueDate).toLocaleTimeString("pt-BR", {hour: '2-digit', minute:'2-digit'})} {slaText}
               </span>
             )}
           </div>
@@ -492,117 +470,70 @@ export function TicketsManagementClient() {
       key: "id",
       className: "w-16 text-right",
       render: (item) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem
-              onClick={() => {
-                setSelectedTicketId(item.id);
-                setModalOpen(true);
-              }}
-              className="text-xs gap-2"
-            >
-              <Edit className="w-3.5 h-3.5 text-primary" />
-              Ver / Editar Chamado
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setActiveTicket(item);
-                setAssignTechModalOpen(true);
-              }}
-              className="text-xs gap-2"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-blue-500" />
-              Atribuir Técnico...
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setActiveTicket(item);
-                setStatusModalOpen(true);
-              }}
-              className="text-xs gap-2"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              Alterar Status...
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleDuplicateTicket(item)}
-              className="text-xs gap-2"
-            >
-              <Copy className="w-3.5 h-3.5 text-purple-500" />
-              Duplicar Chamado
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => setConfirmArchive(item)}
-              className="text-xs gap-2"
-            >
-              <Archive className="w-3.5 h-3.5 text-amber-500" />
-              {item.isArchived ? "Restaurar Chamado" : "Arquivar Chamado"}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setConfirmDelete(item)}
-              className="text-xs gap-2 text-destructive focus:text-destructive"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Excluir (Soft Delete)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center justify-end gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+            onClick={() => {
+              setSelectedTicketId(item.id);
+              setModalOpen(true);
+            }}
+            title="Visualizar/Editar"
+          >
+            <MagnifyingGlass className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-warning hover:text-warning hover:bg-warning/10 rounded-full transition-colors"
+            onClick={() => {
+              setActiveTicket(item);
+              setStatusModalOpen(true);
+            }}
+            title="Alterar Status"
+          >
+            <PencilSimple className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-danger hover:text-danger hover:bg-danger/10 rounded-full transition-colors"
+            onClick={() => setConfirmDelete(item)}
+            title="Excluir"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       ),
     },
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Cabeçalho Minimalista */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6"
+    >
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground flex items-center gap-2">
+          <h1 className="text-3xl font-display font-bold tracking-tight text-foreground flex items-center gap-2">
             Chamados
           </h1>
-          <p className="text-[13px] text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground mt-1">
             Gestão inteligente de tickets e SLA.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="text-xs" disabled={exportingPdf}>
-                <FileText className="w-3.5 h-3.5 mr-1.5" />
-                {exportingPdf ? "Exportando..." : "Exportar"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => {
-                window.open(`/api/tickets/export?${new URLSearchParams({
-                  query, status: statusFilter, sectorId: sectorFilter, serviceId: serviceFilter, technicianId: technicianFilter, origin: originFilter, isArchived: String(isArchived), monthYear
-                }).toString()}`, '_blank');
-              }} className="text-xs gap-2">
-                <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                Exportar para CSV / Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToPDF} className="text-xs gap-2">
-                <FileText className="w-3.5 h-3.5 text-red-500" />
-                Exportar para PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setImportModalOpen(true)}
-            className="text-xs"
-          >
-            <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />
+          <Button variant="outline" size="sm" onClick={() => setImportModalOpen(true)} className="text-xs">
+            <ArrowsDownUp className="w-3.5 h-3.5 mr-1.5" />
             Importar Excel
           </Button>
-
+          <Button variant="outline" size="sm" onClick={openManagerialDashboard} disabled={exportingPdf} className="text-xs text-emerald-600">
+            {exportingPdf ? <ArrowsClockwise className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <FileText className="w-3.5 h-3.5 mr-1.5" />}
+            Relatório
+          </Button>
           <Button
             variant={isArchived ? "secondary" : "outline"}
             size="sm"
@@ -627,70 +558,79 @@ export function TicketsManagementClient() {
             Novo Chamado
           </Button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Cards de KPIs (Slim) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-border/40 bg-transparent shadow-none">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase font-semibold text-muted-foreground">
-                Total Listado
-              </p>
-              <p className="text-2xl font-bold text-foreground mt-1 font-mono">
-                {totalItems}
-              </p>
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
+            <FileText weight="duotone" className="w-24 h-24 text-foreground" />
+          </div>
+          <div className="flex items-center gap-3 mb-2 relative z-10">
+            <div className="p-3 bg-secondary rounded-2xl">
+              <FileText weight="bold" className="w-5 h-5 text-foreground" />
             </div>
-            <FileText className="w-8 h-8 text-primary/40" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/40 bg-transparent shadow-none">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase font-semibold text-amber-500">
-                Aberto
-              </p>
-              <p className="text-2xl font-bold text-foreground mt-1 font-mono">
-                {totalInAttendance}
-              </p>
-            </div>
-            <Clock className="w-8 h-8 text-amber-500/40" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/40 bg-transparent shadow-none">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase font-semibold text-emerald-500">
-                Resolvidos
-              </p>
-              <p className="text-2xl font-bold text-foreground mt-1 font-mono">
-                {totalCompleted}
-              </p>
-            </div>
-            <CheckCircle2 className="w-8 h-8 text-emerald-500/40" />
-          </CardContent>
-        </Card>
-        <Card className="border-border/40 bg-transparent shadow-none">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase font-semibold text-blue-500">
-                Aguardando
-              </p>
-              <p className="text-2xl font-bold text-foreground mt-1 font-mono">
-                {totalWaiting}
-              </p>
-            </div>
-            <AlertTriangle className="w-8 h-8 text-blue-500/40" />
-          </CardContent>
-        </Card>
-      </div>
+            <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Total Listado</span>
+          </div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{totalItems}</div>
+        </div>
 
-      {/* Barra de Pesquisa, Filtros Rápidos e Ordenação */}
-      <Card className="border border-border/80 bg-card/40">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-muted-foreground">Mês de Referência:</span>
+        <div className="glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
+            <Clock weight="duotone" className="w-24 h-24 text-warning" />
+          </div>
+          <div className="flex items-center gap-3 mb-2 relative z-10">
+            <div className="p-3 bg-warning/10 rounded-2xl">
+              <Clock weight="bold" className="w-5 h-5 text-warning" />
+            </div>
+            <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Em Aberto</span>
+          </div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{totalInAttendance}</div>
+        </div>
+
+        <div className="glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
+            <CheckCircle weight="duotone" className="w-24 h-24 text-success" />
+          </div>
+          <div className="flex items-center gap-3 mb-2 relative z-10">
+            <div className="p-3 bg-success/10 rounded-2xl">
+              <CheckCircle weight="bold" className="w-5 h-5 text-success" />
+            </div>
+            <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Resolvidos</span>
+          </div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{totalCompleted}</div>
+        </div>
+
+        <div className="glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
+            <WarningCircle weight="duotone" className="w-24 h-24 text-blue-500" />
+          </div>
+          <div className="flex items-center gap-3 mb-2 relative z-10">
+            <div className="p-3 bg-blue-500/10 rounded-2xl">
+              <WarningCircle weight="bold" className="w-5 h-5 text-blue-500" />
+            </div>
+            <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Aguardando</span>
+          </div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{totalWaiting}</div>
+        </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="glass-card rounded-[2rem] p-6 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full md:w-[350px]">
+            <MagnifyingGlass className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
+              placeholder="Pesquisar número, solicitante, problema..."
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9 h-10 bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30 transition-all rounded-lg"
+            />
+          </div>
+          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Ref:</span>
+            <div className="min-w-[140px]">
               <MonthYearSelector
                 value={monthYear || "ALL"}
                 onChange={(my) => {
@@ -701,103 +641,63 @@ export function TicketsManagementClient() {
               />
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-            {/* Campo Pesquisa Combinada */}
-            <div className="md:col-span-2 relative">
-              <Input
-                placeholder="Pesquisar número, solicitante, problema..."
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(1);
-                }}
-                className="pl-8 text-xs h-9"
-              />
-              <Search className="w-4 h-4 text-muted-foreground absolute left-2.5 top-2.5" />
-            </div>
-
-            {/* Filtro Status */}
-            <div>
-              <select
-                className="w-full h-9 px-2 text-xs rounded-md border border-input bg-background"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="ALL">Status: Todos</option>
-                <option value="ABERTO">Aberto</option>
-                <option value="RESOLVIDO">Resolvido</option>
-                <option value="AGUARDANDO_USUARIO">Aguardando</option>
-                <option value="AGUARDANDO_PECA">Agendado</option>
-              </select>
-            </div>
-
-            {/* Filtro Setor */}
-            <div>
-              <select
-                className="w-full h-9 px-2 text-xs rounded-md border border-input bg-background"
-                value={sectorFilter}
-                onChange={(e) => {
-                  setSectorFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="ALL">Setor: Todos</option>
-                {sectors.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Filtro Técnico */}
-            <div>
-              <select
-                className="w-full h-9 px-2 text-xs rounded-md border border-input bg-background"
-                value={technicianFilter}
-                onChange={(e) => {
-                  setTechnicianFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="ALL">Técnico: Todos</option>
-                {technicians.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Ordenação */}
-            <div>
-              <select
-                className="w-full h-9 px-2 text-xs rounded-md border border-input bg-background"
-                value={`${sortBy}:${sortOrder}`}
-                onChange={(e) => {
-                  const [b, o] = e.target.value.split(":") as [any, any];
-                  setSortBy(b);
-                  setSortOrder(o);
-                }}
-              >
-                <option value="ticketDate:desc">Data (Mais recentes)</option>
-                <option value="ticketDate:asc">Data (Mais antigos)</option>
-                <option value="totalTimeMinutes:desc">Tempo (Maior duração)</option>
-                <option value="totalTimeMinutes:asc">Tempo (Menor duração)</option>
-                <option value="requester:asc">Solicitante (A-Z)</option>
-                <option value="service:asc">Serviço (A-Z)</option>
-              </select>
-            </div>
+        <div className="flex flex-wrap items-center gap-3 border-t border-border/50 pt-4">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Faders className="w-4 h-4" />
+            Filtros:
           </div>
-        </CardContent>
-      </Card>
+          
+          <select
+            className="h-8 px-3 text-xs rounded-md border border-border bg-background focus:ring-1 focus:ring-primary/30 outline-none text-foreground transition-all cursor-pointer"
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          >
+            <option value="ALL">Todos Status</option>
+            <option value="ABERTO">Em Aberto</option>
+            <option value="RESOLVIDO">Resolvido</option>
+            <option value="AGUARDANDO_USUARIO">Aguardando</option>
+            <option value="AGUARDANDO_PECA">Agendado</option>
+          </select>
+
+          <select
+            className="h-8 px-3 text-xs rounded-md border border-border bg-background focus:ring-1 focus:ring-primary/30 outline-none text-foreground transition-all cursor-pointer"
+            value={sectorFilter}
+            onChange={(e) => { setSectorFilter(e.target.value); setPage(1); }}
+          >
+            <option value="ALL">Todos Setores</option>
+            {sectors.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+
+          <select
+            className="h-8 px-3 text-xs rounded-md border border-border bg-background focus:ring-1 focus:ring-primary/30 outline-none text-foreground transition-all cursor-pointer"
+            value={technicianFilter}
+            onChange={(e) => { setTechnicianFilter(e.target.value); setPage(1); }}
+          >
+            <option value="ALL">Todos Técnicos</option>
+            {technicians.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+
+          <select
+            className="h-8 px-3 text-xs rounded-md border border-border bg-background focus:ring-1 focus:ring-primary/30 outline-none text-foreground transition-all cursor-pointer ml-auto"
+            value={`${sortBy}:${sortOrder}`}
+            onChange={(e) => {
+              const [b, o] = e.target.value.split(":") as [any, any];
+              setSortBy(b); setSortOrder(o);
+            }}
+          >
+            <option value="ticketDate:desc">Mais recentes</option>
+            <option value="ticketDate:asc">Mais antigos</option>
+            <option value="totalTimeMinutes:desc">Maior duração</option>
+            <option value="totalTimeMinutes:asc">Menor duração</option>
+            <option value="requester:asc">Solicitante (A-Z)</option>
+          </select>
+        </div>
+      </motion.div>
 
       {/* Tabela de Chamados */}
-      <Card className="border border-border/80 bg-card shadow-sm overflow-hidden">
+      <motion.div variants={itemVariants} className="glass-card rounded-[2rem] p-2 overflow-hidden shadow-sm">
         <DataTable
           columns={columns}
           data={tickets}
@@ -835,7 +735,7 @@ export function TicketsManagementClient() {
             </div>
           </div>
         )}
-      </Card>
+      </motion.div>
 
       {/* Modais do Módulo */}
       <TicketModal
@@ -896,6 +796,12 @@ export function TicketsManagementClient() {
            fetchTickets();
         }}
       />
-    </div>
+      {managerialDashboardOpen && (
+        <ManagerialDashboard 
+          tickets={managerialDashboardTickets} 
+          onClose={() => setManagerialDashboardOpen(false)} 
+        />
+      )}
+    </motion.div>
   );
 }

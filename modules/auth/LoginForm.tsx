@@ -12,8 +12,8 @@ import { Badge } from "@/components/ui/badge";
 
 export function LoginForm() {
   const isDev = process.env.NODE_ENV === "development";
-  const [email, setEmail] = useState(isDev ? "admin@cgconstrucoes.com.br" : "");
-  const [password, setPassword] = useState(isDev ? "admin123" : "");
+  const [email, setEmail] = useState(isDev ? (process.env.NEXT_PUBLIC_DEV_EMAIL || "") : "");
+  const [password, setPassword] = useState(isDev ? (process.env.NEXT_PUBLIC_DEV_PASSWORD || "") : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +42,7 @@ export function LoginForm() {
       }
 
       await refresh();
-      router.push("/dashboard");
+      router.push("/");
       router.refresh();
     } catch (err) {
       console.error(err);

@@ -2,32 +2,25 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { motion, type Variants } from "framer-motion";
 import {
-  Building2,
-  Palette,
-  Users,
+  BuildingOffice,
+  PaintBrush,
+  UsersThree,
   FileText,
   Printer,
   ShieldCheck,
-  Webhook,
-  Save,
-  RotateCcw,
-  CheckCircle2,
-  AlertCircle,
-  ExternalLink,
-  Phone,
-  Mail,
-  MapPin,
-  Clock,
-  ShieldAlert,
-  Layers,
-  Sparkles,
-  Send,
+  Graph,
   Wrench,
-  Upload,
-  Trash2,
-  AlertTriangle,
-} from "lucide-react";
+  CheckCircle,
+  WarningCircle,
+  Sparkle,
+  ArrowCounterClockwise,
+  FloppyDisk,
+  Warning,
+  Export,
+  Trash,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +28,24 @@ import { SectionCard } from "@/components/common/SectionCard";
 import { useWhiteLabel } from "@/hooks/useWhiteLabel";
 import { CorporateSettingsDTO } from "@/services/settings/settings.service";
 import { CsvImportWizard } from "@/modules/import/CsvImportWizard";
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 100, damping: 20 } 
+  }
+};
 
 export function CorporateSettingsClient() {
   const { config, updateConfig } = useWhiteLabel();
@@ -193,13 +204,13 @@ export function CorporateSettingsClient() {
   };
 
   const tabs = [
-    { id: "EMPRESA", label: "Empresa", icon: Building2 },
-    { id: "APARENCIA", label: "Aparência", icon: Palette },
-    { id: "USUARIOS", label: "Usuários & RBAC", icon: Users },
+    { id: "EMPRESA", label: "Empresa", icon: BuildingOffice },
+    { id: "APARENCIA", label: "Aparência", icon: PaintBrush },
+    { id: "USUARIOS", label: "Usuários & RBAC", icon: UsersThree },
     { id: "CHAMADOS", label: "Chamados & SLA", icon: FileText },
     { id: "RELATORIOS", label: "Relatórios & PDF", icon: Printer },
     { id: "AUDITORIA", label: "Auditoria & Logs", icon: ShieldCheck },
-    { id: "INTEGRACOES", label: "Integrações", icon: Webhook },
+    { id: "INTEGRACOES", label: "Integrações", icon: Graph },
     { id: "FERRAMENTAS", label: "Ferramentas", icon: Wrench },
   ] as const;
 
@@ -237,9 +248,15 @@ export function CorporateSettingsClient() {
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6"
+    >
       {/* CARD BANNER PRINCIPAL WHITE LABEL PREVIEW EM TEMPO REAL */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-card via-card to-primary/5 p-6 shadow-md">
+      <motion.div variants={itemVariants} className="relative overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-r from-card via-card to-primary/5 p-8 shadow-xl">
+        <div className="absolute top-0 right-0 p-32 bg-primary/5 rounded-full blur-3xl -z-10 -mr-20 -mt-20"></div>
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white p-2.5 shadow-sm border border-border">
@@ -249,6 +266,7 @@ export function CorporateSettingsClient() {
                 width={48}
                 height={48}
                 className="h-full w-full object-contain"
+                priority
               />
             </div>
             <div>
@@ -256,8 +274,8 @@ export function CorporateSettingsClient() {
                 <h3 className="text-xl font-bold text-foreground">
                   {form.systemName}
                 </h3>
-                <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
-                  <Sparkles className="h-3 w-3 mr-1" />
+                <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 rounded-full px-3">
+                  <Sparkle weight="fill" className="h-3 w-3 mr-1" />
                   White Label Ativo
                 </Badge>
               </div>
@@ -272,40 +290,48 @@ export function CorporateSettingsClient() {
               variant="outline"
               size="sm"
               onClick={handleRestoreDefaults}
-              className="text-xs"
+              className="text-xs h-10 px-4 rounded-xl border-border/80 hover:bg-muted/50"
             >
-              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+              <ArrowCounterClockwise className="h-4 w-4 mr-2" />
               Restaurar Padrão
             </Button>
             <Button
               size="sm"
               onClick={handleSave}
               disabled={saving}
-              className="font-semibold shadow-sm text-xs"
+              className="font-semibold shadow-md text-xs h-10 px-6 rounded-xl transition-all hover:shadow-lg"
             >
-              <Save className="h-3.5 w-3.5 mr-1.5" />
+              <FloppyDisk weight="fill" className="h-4 w-4 mr-2" />
               {saving ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </div>
         </div>
 
         {saveStatus === "SUCCESS" && (
-          <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="h-4 w-4" />
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 flex items-center gap-2 rounded-xl bg-success/10 border border-success/30 px-4 py-3 text-xs font-semibold text-success"
+          >
+            <CheckCircle weight="fill" className="h-5 w-5" />
             Configurações corporativas atualizadas com sucesso e aplicadas ao sistema!
-          </div>
+          </motion.div>
         )}
 
         {saveStatus === "ERROR" && (
-          <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/30 px-3.5 py-2 text-xs font-semibold text-red-600 dark:text-red-400">
-            <AlertCircle className="h-4 w-4" />
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 flex items-center gap-2 rounded-xl bg-danger/10 border border-danger/30 px-4 py-3 text-xs font-semibold text-danger"
+          >
+            <WarningCircle weight="fill" className="h-5 w-5" />
             {errorMessage}
-          </div>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
       {/* BARRA DE NAVEGAÇÃO ENTRE AS 7 ABAS OBRIGATÓRIAS */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-border">
+      <motion.div variants={itemVariants} className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-border/40 scrollbar-hide">
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
@@ -314,21 +340,21 @@ export function CorporateSettingsClient() {
               key={t.id}
               type="button"
               onClick={() => setActiveTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-semibold whitespace-nowrap transition-all border-b-2 ${
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-display font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${
                 isActive
-                  ? "border-primary text-primary bg-primary/5"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                  ? "bg-foreground text-background shadow-md scale-[1.02]"
+                  : "bg-transparent border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
-              <Icon className="h-4 w-4" />
+              <Icon weight={isActive ? "fill" : "duotone"} className="h-5 w-5" />
               {t.label}
             </button>
           );
         })}
-      </div>
+      </motion.div>
 
       {/* CONTEÚDO DE CADA UMA DAS 7 ABAS */}
-      <div className="space-y-6">
+      <div className="space-y-6 pt-4">
         {/* ======================= ABA 1: EMPRESA ======================= */}
         {activeTab === "EMPRESA" && (
           <SectionCard
@@ -336,81 +362,87 @@ export function CorporateSettingsClient() {
             description="Informações cadastrais e logomarca institucional da CG Construções."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   Nome do Sistema
                 </label>
                 <Input
                   value={form.systemName}
                   onChange={(e) => handleChange("systemName", e.target.value)}
                   placeholder="Ex: CG Construções HelpDesk Pro"
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   Departamento Responsável
                 </label>
                 <Input
                   value={form.department}
                   onChange={(e) => handleChange("department", e.target.value)}
                   placeholder="Ex: Departamento de TI"
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  Logomarca Oficial & Favicon (URL do arquivo)
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
+                  Logomarca Oficial & Favicon (URL)
                 </label>
                 <Input
                   value={form.favicon}
                   onChange={(e) => handleChange("favicon", e.target.value)}
                   placeholder="Ex: /cg-logo.png"
-                  className="font-mono text-xs"
+                  className="font-mono text-xs h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   E-mail Institucional de TI
                 </label>
                 <Input
                   value={form.email}
                   onChange={(e) => handleChange("email", e.target.value)}
                   placeholder="ti@cgconstrucoes.com.br"
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   Telefone de Suporte / Ramal
                 </label>
                 <Input
                   value={form.phone}
                   onChange={(e) => handleChange("phone", e.target.value)}
                   placeholder="(11) 3456-7890"
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   Website Corporativo
                 </label>
                 <Input
                   value={form.website}
                   onChange={(e) => handleChange("website", e.target.value)}
                   placeholder="www.cgconstrucoes.com.br"
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
 
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   Endereço Sede / Unidade
                 </label>
                 <Input
                   value={form.address}
                   onChange={(e) => handleChange("address", e.target.value)}
                   placeholder="Av. Principal, 1000 - Centro"
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
             </div>
@@ -424,8 +456,8 @@ export function CorporateSettingsClient() {
             description="Personalização do design system visual com visualização instantânea."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest block mb-2">
                   Tema Padrão do Sistema
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -438,10 +470,10 @@ export function CorporateSettingsClient() {
                       key={item.val}
                       type="button"
                       onClick={() => handleChange("theme", item.val)}
-                      className={`py-2.5 px-3 rounded-lg border text-xs font-semibold transition-all ${
+                      className={`py-3 px-4 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
                         form.theme === item.val
-                          ? "border-primary bg-primary/10 text-primary ring-2 ring-primary"
-                          : "border-border text-foreground hover:bg-muted/40"
+                          ? "border-primary bg-primary text-background shadow-lg"
+                          : "border-border/60 text-foreground hover:bg-muted/50 bg-background/50"
                       }`}
                     >
                       {item.label}
@@ -450,36 +482,42 @@ export function CorporateSettingsClient() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest block mb-2">
                   Cor Primária Institucional
                 </label>
                 <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={form.primaryColor}
-                    onChange={(e) => handleChange("primaryColor", e.target.value)}
-                    className="h-10 w-12 rounded-lg border border-border cursor-pointer bg-transparent"
-                  />
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={form.primaryColor}
+                      onChange={(e) => handleChange("primaryColor", e.target.value)}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                    />
+                    <div 
+                      className="h-12 w-16 rounded-xl border-2 border-border/80 shadow-inner"
+                      style={{ backgroundColor: form.primaryColor }}
+                    />
+                  </div>
                   <Input
                     value={form.primaryColor}
                     onChange={(e) => handleChange("primaryColor", e.target.value)}
-                    className="font-mono text-xs w-36"
+                    className="font-mono text-sm h-12 w-32 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                   />
-                  <Badge variant="outline" className="text-xs">
-                    Azul CG Padrão: #2563eb
+                  <Badge variant="outline" className="text-[10px] uppercase font-mono tracking-wider h-8 rounded-lg bg-background">
+                    Padrão: #2563eb
                   </Badge>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">
-                  Arredondamento de Bordas (Border Radius)
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest block mb-2">
+                  Arredondamento de Bordas
                 </label>
                 <select
                   value={form.borderRadius}
                   onChange={(e) => handleChange("borderRadius", e.target.value)}
-                  className="w-full h-10 px-3 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-border/80 bg-background/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
                 >
                   <option value="0.25rem">Pequeno (0.25rem)</option>
                   <option value="0.5rem">Padrão Moderno (0.5rem)</option>
@@ -488,21 +526,28 @@ export function CorporateSettingsClient() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-bold text-foreground">
+              <div className="flex items-center justify-between p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors">
+                <div className="space-y-1 max-w-[80%]">
+                  <p className="text-sm font-display font-bold text-foreground">
                     Modo Compacto de Tabelas
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Reduz o preenchimento (padding) nas listagens para telas com alta densidade de dados.
                   </p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.compactMode}
-                  onChange={(e) => handleChange("compactMode", e.target.checked)}
-                  className="h-5 w-5 rounded border-input text-primary focus:ring-primary"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={form.compactMode}
+                    onChange={(e) => handleChange("compactMode", e.target.checked)}
+                    className="peer sr-only"
+                    id="compactMode"
+                  />
+                  <label
+                    htmlFor="compactMode"
+                    className="w-11 h-6 bg-muted-foreground/30 rounded-full peer peer-checked:bg-primary cursor-pointer transition-colors duration-300 relative after:content-[''] after:absolute after:top-1 after:left-1 after:bg-background after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"
+                  ></label>
+                </div>
               </div>
             </div>
           </SectionCard>
@@ -515,42 +560,56 @@ export function CorporateSettingsClient() {
             description="Controla segurança de autenticação, auto-cadastro e tempos de sessão."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-bold text-foreground">
+              <div className="flex items-center justify-between p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors">
+                <div className="space-y-1 max-w-[80%]">
+                  <p className="text-sm font-display font-bold text-foreground">
                     Permitir Auto-Cadastro
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Permite que funcionários solicitem cadastro através da tela de login.
                   </p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.allowRegistration}
-                  onChange={(e) => handleChange("allowRegistration", e.target.checked)}
-                  className="h-5 w-5 rounded border-input text-primary focus:ring-primary"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={form.allowRegistration}
+                    onChange={(e) => handleChange("allowRegistration", e.target.checked)}
+                    className="peer sr-only"
+                    id="allowRegistration"
+                  />
+                  <label
+                    htmlFor="allowRegistration"
+                    className="w-11 h-6 bg-muted-foreground/30 rounded-full peer peer-checked:bg-primary cursor-pointer transition-colors duration-300 relative after:content-[''] after:absolute after:top-1 after:left-1 after:bg-background after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"
+                  ></label>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-bold text-foreground">
+              <div className="flex items-center justify-between p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors">
+                <div className="space-y-1 max-w-[80%]">
+                  <p className="text-sm font-display font-bold text-foreground">
                     Forçar Redefinição no 1º Acesso
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Usuário deve redefinir senha temporária ao logar pela primeira vez.
                   </p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.requireFirstAccess}
-                  onChange={(e) => handleChange("requireFirstAccess", e.target.checked)}
-                  className="h-5 w-5 rounded border-input text-primary focus:ring-primary"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={form.requireFirstAccess}
+                    onChange={(e) => handleChange("requireFirstAccess", e.target.checked)}
+                    className="peer sr-only"
+                    id="requireFirstAccess"
+                  />
+                  <label
+                    htmlFor="requireFirstAccess"
+                    className="w-11 h-6 bg-muted-foreground/30 rounded-full peer peer-checked:bg-primary cursor-pointer transition-colors duration-300 relative after:content-[''] after:absolute after:top-1 after:left-1 after:bg-background after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"
+                  ></label>
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   Tamanho Mínimo da Senha
                 </label>
                 <Input
@@ -559,11 +618,12 @@ export function CorporateSettingsClient() {
                   onChange={(e) => handleChange("minPasswordLen", Number(e.target.value))}
                   min={6}
                   max={20}
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   Timeout da Sessão Inativa (Minutos)
                 </label>
                 <Input
@@ -572,12 +632,13 @@ export function CorporateSettingsClient() {
                   onChange={(e) => handleChange("sessionTimeoutMin", Number(e.target.value))}
                   min={15}
                   max={720}
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  Máximo de Tentativas Inválidas (Bloqueio)
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
+                  Máximo de Tentativas Inválidas
                 </label>
                 <Input
                   type="number"
@@ -585,6 +646,7 @@ export function CorporateSettingsClient() {
                   onChange={(e) => handleChange("maxLoginAttempts", Number(e.target.value))}
                   min={3}
                   max={10}
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
             </div>
@@ -598,9 +660,9 @@ export function CorporateSettingsClient() {
             description="Valores iniciais aplicados automaticamente ao abrir ou gerenciar chamados."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  SLA Padrão (Horas para Resolução)
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
+                  SLA Padrão (Horas)
                 </label>
                 <Input
                   type="number"
@@ -608,31 +670,32 @@ export function CorporateSettingsClient() {
                   onChange={(e) => handleChange("defaultSlaHours", Number(e.target.value))}
                   min={1}
                   max={168}
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  Status Inicial de Novos Chamados
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
+                  Status Inicial
                 </label>
                 <select
                   value={form.defaultStatus}
                   onChange={(e) => handleChange("defaultStatus", e.target.value)}
-                  className="w-full h-10 px-3 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-border/80 bg-background/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
                 >
                   <option value="ABERTO">Aberto (Padrão)</option>
-                  <option value="PENDENTE">Pendente (Requer Triagem)</option>
+                  <option value="PENDENTE">Pendente (Triagem)</option>
                 </select>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  Origem Padrão na Abertura
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
+                  Origem Padrão
                 </label>
                 <select
                   value={form.defaultOrigin}
                   onChange={(e) => handleChange("defaultOrigin", e.target.value)}
-                  className="w-full h-10 px-3 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-border/80 bg-background/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
                 >
                   <option value="MANUAL">Manual (Portal Web)</option>
                   <option value="WHATSAPP">WhatsApp</option>
@@ -640,14 +703,14 @@ export function CorporateSettingsClient() {
                 </select>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   Prioridade Padrão
                 </label>
                 <select
                   value={form.defaultPriority}
                   onChange={(e) => handleChange("defaultPriority", e.target.value)}
-                  className="w-full h-10 px-3 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-border/80 bg-background/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
                 >
                   <option value="BAIXA">Baixa</option>
                   <option value="MEDIA">Média (Padrão)</option>
@@ -656,48 +719,62 @@ export function CorporateSettingsClient() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20 md:col-span-2">
-                <div className="space-y-0.5">
+              <div className="flex items-center justify-between p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors md:col-span-2">
+                <div className="space-y-1 max-w-[80%]">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-foreground">
+                    <p className="text-sm font-display font-bold text-foreground">
                       Numeração Sequencial com Reinício Mensal
                     </p>
-                    <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
+                    <Badge className="bg-primary/10 text-primary border-primary/20 rounded-full px-2 py-0.5 text-[10px]">
                       Etapa 6 Ativo
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    O número dos chamados é gerado por mês (ex: #1/07-2026, #2/07-2026) e reinicia no dia 1º de cada mês de forma automática.
+                    O número dos chamados é gerado por mês (ex: #1/07-2026) e reinicia no dia 1º de cada mês automaticamente.
                   </p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.monthlyNumbering}
-                  onChange={(e) => handleChange("monthlyNumbering", e.target.checked)}
-                  className="h-5 w-5 rounded border-input text-primary focus:ring-primary"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={form.monthlyNumbering}
+                    onChange={(e) => handleChange("monthlyNumbering", e.target.checked)}
+                    className="peer sr-only"
+                    id="monthlyNumbering"
+                  />
+                  <label
+                    htmlFor="monthlyNumbering"
+                    className="w-11 h-6 bg-muted-foreground/30 rounded-full peer peer-checked:bg-primary cursor-pointer transition-colors duration-300 relative after:content-[''] after:absolute after:top-1 after:left-1 after:bg-background after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"
+                  ></label>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-bold text-foreground">
+              <div className="flex items-center justify-between p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors">
+                <div className="space-y-1 max-w-[80%]">
+                  <p className="text-sm font-display font-bold text-foreground">
                     Arquivar Resolvidos Automaticamente
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Mover chamados antigos finalizados para o arquivo histórico.
                   </p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.autoArchive}
-                  onChange={(e) => handleChange("autoArchive", e.target.checked)}
-                  className="h-5 w-5 rounded border-input text-primary focus:ring-primary"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={form.autoArchive}
+                    onChange={(e) => handleChange("autoArchive", e.target.checked)}
+                    className="peer sr-only"
+                    id="autoArchive"
+                  />
+                  <label
+                    htmlFor="autoArchive"
+                    className="w-11 h-6 bg-muted-foreground/30 rounded-full peer peer-checked:bg-primary cursor-pointer transition-colors duration-300 relative after:content-[''] after:absolute after:top-1 after:left-1 after:bg-background after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"
+                  ></label>
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  Dias Após Conclusão para Arquivar
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
+                  Dias para Arquivar
                 </label>
                 <Input
                   type="number"
@@ -705,6 +782,7 @@ export function CorporateSettingsClient() {
                   onChange={(e) => handleChange("archiveDays", Number(e.target.value))}
                   min={7}
                   max={365}
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
             </div>
@@ -718,61 +796,75 @@ export function CorporateSettingsClient() {
             description="Define diretrizes institucionais para documentos exportados pelo sistema."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-bold text-foreground">
+              <div className="flex items-center justify-between p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors">
+                <div className="space-y-1 max-w-[80%]">
+                  <p className="text-sm font-display font-bold text-foreground">
                     Exibir Logomarca Oficial no Cabeçalho
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Inclui a logo da CG Construções no topo esquerdo do documento PDF.
+                    Inclui a logo da empresa no topo esquerdo do documento PDF.
                   </p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.reportShowLogo}
-                  onChange={(e) => handleChange("reportShowLogo", e.target.checked)}
-                  className="h-5 w-5 rounded border-input text-primary focus:ring-primary"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={form.reportShowLogo}
+                    onChange={(e) => handleChange("reportShowLogo", e.target.checked)}
+                    className="peer sr-only"
+                    id="reportShowLogo"
+                  />
+                  <label
+                    htmlFor="reportShowLogo"
+                    className="w-11 h-6 bg-muted-foreground/30 rounded-full peer peer-checked:bg-primary cursor-pointer transition-colors duration-300 relative after:content-[''] after:absolute after:top-1 after:left-1 after:bg-background after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"
+                  ></label>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-bold text-foreground">
-                    Exibir Rodapé e Paginação Institucional
+              <div className="flex items-center justify-between p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors">
+                <div className="space-y-1 max-w-[80%]">
+                  <p className="text-sm font-display font-bold text-foreground">
+                    Exibir Rodapé e Paginação
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Inclui assinatura CG Construções | Depto. de TI em todas as páginas.
+                    Inclui assinatura em todas as páginas do PDF.
                   </p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.reportShowFooter}
-                  onChange={(e) => handleChange("reportShowFooter", e.target.checked)}
-                  className="h-5 w-5 rounded border-input text-primary focus:ring-primary"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={form.reportShowFooter}
+                    onChange={(e) => handleChange("reportShowFooter", e.target.checked)}
+                    className="peer sr-only"
+                    id="reportShowFooter"
+                  />
+                  <label
+                    htmlFor="reportShowFooter"
+                    className="w-11 h-6 bg-muted-foreground/30 rounded-full peer peer-checked:bg-primary cursor-pointer transition-colors duration-300 relative after:content-[''] after:absolute after:top-1 after:left-1 after:bg-background after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"
+                  ></label>
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   Tema Padrão do Relatório PDF
                 </label>
                 <select
                   value={form.reportDefaultTheme}
                   onChange={(e) => handleChange("reportDefaultTheme", e.target.value)}
-                  className="w-full h-10 px-3 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full h-12 px-4 text-sm font-medium rounded-xl border border-border/80 bg-background/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
                 >
                   <option value="LIGHT">Tema Claro (Fundo Branco Padrão)</option>
                   <option value="DARK">Tema Escuro (Corporativo Ardósia)</option>
                 </select>
               </div>
 
-              <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-3">
-                <Printer className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-foreground">
+              <div className="p-5 rounded-2xl border border-primary/20 bg-primary/5 flex items-start gap-4">
+                <Printer weight="duotone" className="h-6 w-6 text-primary shrink-0 mt-0.5" />
+                <div className="space-y-1.5">
+                  <p className="text-sm font-display font-bold text-foreground">
                     Formato Fixo: Landscape (A4 Paisagem)
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     Conforme norma corporativa, todos os relatórios executivos gerenciais são desenhados vetorialmente na orientação Landscape para perfeita disposição das tabelas de BI.
                   </p>
                 </div>
@@ -788,25 +880,32 @@ export function CorporateSettingsClient() {
             description="Controle de rastreabilidade, histórico de chamados e conformidade."
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-bold text-foreground">
-                    Registro de Log de Auditoria Ativo
+              <div className="flex items-center justify-between p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors">
+                <div className="space-y-1 max-w-[80%]">
+                  <p className="text-sm font-display font-bold text-foreground">
+                    Registro de Log de Auditoria
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Registra todas as ações administrativas, alterações de status e permissões.
                   </p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.auditLogEnabled}
-                  onChange={(e) => handleChange("auditLogEnabled", e.target.checked)}
-                  className="h-5 w-5 rounded border-input text-primary focus:ring-primary"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={form.auditLogEnabled}
+                    onChange={(e) => handleChange("auditLogEnabled", e.target.checked)}
+                    className="peer sr-only"
+                    id="auditLogEnabled"
+                  />
+                  <label
+                    htmlFor="auditLogEnabled"
+                    className="w-11 h-6 bg-muted-foreground/30 rounded-full peer peer-checked:bg-primary cursor-pointer transition-colors duration-300 relative after:content-[''] after:absolute after:top-1 after:left-1 after:bg-background after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"
+                  ></label>
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-widest">
                   Período de Retenção de Logs (Dias)
                 </label>
                 <Input
@@ -815,18 +914,19 @@ export function CorporateSettingsClient() {
                   onChange={(e) => handleChange("auditRetentionDays", Number(e.target.value))}
                   min={30}
                   max={1825}
+                  className="h-12 rounded-xl bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
               </div>
 
-              <div className="p-4 rounded-xl border border-border bg-muted/10 md:col-span-2 space-y-2">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                  <span className="font-semibold text-sm text-foreground">
+              <div className="p-5 rounded-2xl border border-border/60 bg-muted/10 md:col-span-2 space-y-3">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck weight="duotone" className="h-6 w-6 text-success" />
+                  <span className="font-display font-bold text-sm text-foreground">
                     Rastreamento Integral
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  O módulo de auditoria no HelpDesk Pro grava alterações em <code className="font-mono text-primary">tickets</code>, <code className="font-mono text-primary">users</code> e <code className="font-mono text-primary">settings</code>, possibilitando consultas jurídicas e gerenciais por período.
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  O módulo de auditoria no HelpDesk Pro grava alterações em <code className="font-mono text-primary bg-primary/10 px-1 rounded">tickets</code>, <code className="font-mono text-primary bg-primary/10 px-1 rounded">users</code> e <code className="font-mono text-primary bg-primary/10 px-1 rounded">settings</code>, possibilitando consultas jurídicas e gerenciais por período.
                 </p>
               </div>
             </div>
@@ -841,36 +941,36 @@ export function CorporateSettingsClient() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* WhatsApp Webhook Card */}
-              <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+              <div className="p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
-                      <Webhook className="h-5 w-5" />
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-success/10 text-success">
+                      <Graph weight="duotone" className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-foreground">
-                        Conector WhatsApp API (Meta / Twilio)
+                      <p className="text-sm font-display font-bold text-foreground">
+                        Conector WhatsApp API (Meta)
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
                         Canal para abertura e notificações por celular
                       </p>
                     </div>
                   </div>
-                  <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
+                  <Badge className="bg-success/10 text-success border-success/20 rounded-full px-3">
                     Conectado
                   </Badge>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-display font-bold text-muted-foreground uppercase tracking-wider">
                     Webhook URL Endpoint
                   </label>
                   <div className="flex items-center gap-2">
                     <Input
                       defaultValue="https://helpdesk.cgconstrucoes.com.br/api/webhooks/whatsapp"
                       readOnly
-                      className="text-xs font-mono bg-background"
+                      className="text-[11px] font-mono h-10 rounded-xl bg-background border-border/60"
                     />
-                    <Button variant="outline" size="sm" className="text-xs shrink-0">
+                    <Button variant="outline" size="sm" className="h-10 rounded-xl shrink-0">
                       Testar
                     </Button>
                   </div>
@@ -878,36 +978,36 @@ export function CorporateSettingsClient() {
               </div>
 
               {/* SMTP / Email Card */}
-              <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+              <div className="p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
-                      <Mail className="h-5 w-5" />
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500">
+                      <Export weight="duotone" className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-foreground">
-                        Servidor SMTP / E-mail Institucional
+                      <p className="text-sm font-display font-bold text-foreground">
+                        Servidor SMTP / E-mail
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Envio de relatórios PDF e comprovantes de chamado
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Envio de relatórios PDF e comprovantes
                       </p>
                     </div>
                   </div>
-                  <Badge className="bg-blue-500/15 text-blue-600 border-blue-500/30">
+                  <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 rounded-full px-3">
                     Ativo (TLS 587)
                   </Badge>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-muted-foreground uppercase">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-display font-bold text-muted-foreground uppercase tracking-wider">
                     Host de Envio SMTP
                   </label>
                   <div className="flex items-center gap-2">
                     <Input
                       defaultValue="smtp.cgconstrucoes.com.br"
                       readOnly
-                      className="text-xs font-mono bg-background"
+                      className="text-[11px] font-mono h-10 rounded-xl bg-background border-border/60"
                     />
-                    <Button variant="outline" size="sm" className="text-xs shrink-0">
+                    <Button variant="outline" size="sm" className="h-10 rounded-xl shrink-0">
                       Disparar Teste
                     </Button>
                   </div>
@@ -925,48 +1025,48 @@ export function CorporateSettingsClient() {
           >
             <div className="space-y-6">
               {/* Importador Inteligente de CSV */}
-              <div className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                      <Upload className="h-6 w-6" />
+              <div className="glass-card rounded-[2rem] p-8 space-y-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-4 rounded-2xl bg-primary/10 text-primary shrink-0">
+                      <Export weight="duotone" className="h-8 w-8" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-foreground">
+                      <h3 className="text-lg font-display font-bold text-foreground">
                         Importador Inteligente de Histórico CSV
                       </h3>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-xl">
-                        Assistente em 5 etapas para importação de planilhas antigas da empresa (ex: Controle de Chamados). Mapeia colunas, prevê duplicidades, cria novos solicitantes e insere os registros preservando técnicos e serviços já cadastrados no banco.
+                      <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
+                        Assistente em 5 etapas para importação de planilhas antigas. Mapeia colunas, prevê duplicidades, cria novos solicitantes e insere os registros preservando técnicos e serviços já cadastrados no banco.
                       </p>
                     </div>
                   </div>
                   <Button
                     onClick={() => setImportWizardOpen(true)}
-                    className="shrink-0 font-semibold shadow-sm text-xs"
+                    className="shrink-0 font-semibold shadow-md h-12 px-6 rounded-xl w-full md:w-auto transition-all hover:shadow-lg"
                   >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Abrir Importador CSV
+                    <Export className="h-5 w-5 mr-2" />
+                    Abrir Importador
                   </Button>
                 </div>
               </div>
 
               {/* Reset Operacional do Banco */}
-              <div className="p-5 rounded-xl border border-red-500/30 bg-red-500/5 space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-3 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
-                      <Trash2 className="h-6 w-6" />
+              <div className="glass-card !border-danger/30 !bg-danger/5 rounded-[2rem] p-8 space-y-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-4 rounded-2xl bg-danger/10 text-danger shrink-0">
+                      <Trash weight="duotone" className="h-8 w-8" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-foreground">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-display font-bold text-foreground">
                           Reset de Dados Operacionais
                         </h3>
-                        <Badge className="bg-red-500/15 text-red-600 border-red-500/30 text-[10px]">
+                        <Badge className="bg-danger/10 text-danger border-danger/20 rounded-full px-3">
                           Ação Crítica
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                      <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
                         Exclui todos os chamados, comentários, anexos e histórico operacional do sistema, mantendo a estrutura institucional intacta (Empresa, Setores, Serviços, Usuários e RBAC).
                       </p>
                     </div>
@@ -974,10 +1074,10 @@ export function CorporateSettingsClient() {
                   <Button
                     variant="destructive"
                     onClick={() => setResetModalOpen(true)}
-                    className="shrink-0 font-semibold shadow-sm text-xs"
+                    className="shrink-0 font-semibold shadow-md h-12 px-6 rounded-xl w-full md:w-auto transition-all hover:shadow-lg"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Resetar Banco...
+                    <Trash className="h-5 w-5 mr-2" />
+                    Resetar Banco
                   </Button>
                 </div>
               </div>
@@ -994,40 +1094,44 @@ export function CorporateSettingsClient() {
 
       {/* MODAL DE CONFIRMAÇÃO DE RESET DO BANCO */}
       {resetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400">
-                <AlertTriangle className="h-6 w-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md rounded-[2rem] border border-border bg-card p-8 shadow-2xl space-y-6"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-4 rounded-2xl bg-danger/10 text-danger">
+                <Warning weight="duotone" className="h-8 w-8" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-foreground">
-                  Confirmar Reset do Banco
+                <h3 className="text-xl font-display font-bold text-foreground">
+                  Confirmar Reset
                 </h3>
-                <p className="text-xs text-muted-foreground">
-                  Todos os chamados e dados operacionais serão excluídos.
+                <p className="text-sm text-muted-foreground mt-1">
+                  Todos os dados operacionais serão excluídos.
                 </p>
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-muted/50 border border-border text-xs text-muted-foreground space-y-1">
-              <p className="font-semibold text-foreground">Registros que serão preservados:</p>
+            <div className="p-4 rounded-xl bg-muted/50 border border-border/60 text-sm text-muted-foreground space-y-2">
+              <p className="font-bold text-foreground">Registros preservados:</p>
               <p>Empresa, Configurações, Setores, Serviços, Usuários, Cargos e Tema.</p>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-foreground">
-                Digite <span className="font-mono font-bold text-red-500">RESETAR</span> para confirmar:
+            <div className="space-y-3">
+              <label className="text-xs font-display font-bold text-foreground uppercase tracking-widest">
+                Digite <span className="text-danger">RESETAR</span> para confirmar:
               </label>
               <Input
                 value={resetConfirmText}
                 onChange={(e) => setResetConfirmText(e.target.value)}
                 placeholder="RESETAR"
-                className="font-mono text-center tracking-widest uppercase font-bold"
+                className="font-mono text-center tracking-widest uppercase font-bold h-12 rounded-xl"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-4">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -1035,6 +1139,7 @@ export function CorporateSettingsClient() {
                   setResetConfirmText("");
                 }}
                 disabled={resetting}
+                className="h-12 px-6 rounded-xl"
               >
                 Cancelar
               </Button>
@@ -1042,14 +1147,14 @@ export function CorporateSettingsClient() {
                 variant="destructive"
                 disabled={resetConfirmText !== "RESETAR" || resetting}
                 onClick={handleResetDatabase}
-                className="font-semibold"
+                className="h-12 px-6 rounded-xl font-bold"
               >
                 {resetting ? "Resetando..." : "Confirmar Reset"}
               </Button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

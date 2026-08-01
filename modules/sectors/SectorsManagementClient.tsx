@@ -12,7 +12,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, MoreHorizontal, Edit3, Trash2 } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
+import { Plus, MagnifyingGlass, DotsThree, PencilSimple, Trash } from "@phosphor-icons/react";
 import { SectorModal } from "./SectorModal";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
@@ -21,6 +22,24 @@ export interface SectorRow {
   name: string;
   description: string | null;
 }
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 100, damping: 20 } 
+  }
+};
 
 export function SectorsManagementClient() {
   const [sectors, setSectors] = useState<SectorRow[]>([]);
@@ -105,7 +124,7 @@ export function SectorsManagementClient() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
+                <DotsThree className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -115,13 +134,13 @@ export function SectorsManagementClient() {
                   setIsModalOpen(true);
                 }}
               >
-                <Edit3 className="mr-2 h-4 w-4" /> Editar
+                <PencilSimple className="mr-2 h-4 w-4" /> Editar
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setConfirmDelete(s)}
                 className="text-red-600 focus:text-red-600"
               >
-                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                <Trash className="mr-2 h-4 w-4" /> Excluir
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -131,31 +150,42 @@ export function SectorsManagementClient() {
   ];
 
   return (
-    <>
-      <PageHeader
-        title="Setores"
-        breadcrumb={["Início", "Setores"]}
-        description="Gestão de departamentos e empresas cadastradas no sistema."
-      >
-        <Button
-          onClick={() => {
-            setSectorToEdit(null);
-            setIsModalOpen(true);
-          }}
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6"
+    >
+      <motion.div variants={itemVariants}>
+        <PageHeader
+          title="Setores"
+          breadcrumb={["Início", "Setores"]}
+          description="Gestão de departamentos e empresas cadastradas no sistema."
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Setor
-        </Button>
-      </PageHeader>
+          <Button
+            onClick={() => {
+              setSectorToEdit(null);
+              setIsModalOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Setor
+          </Button>
+        </PageHeader>
+      </motion.div>
 
       <div className="mt-6">
-        <SectionCard>
+        <motion.div variants={itemVariants} className="glass-card rounded-[2rem] p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-foreground">Lista de Setores</h2>
+            <p className="text-sm text-muted-foreground">Departamentos disponíveis para cadastro de solicitantes.</p>
+          </div>
           <div className="flex mb-6">
             <div className="relative w-full max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar setores..."
-                className="pl-9"
+                className="pl-9 h-10 bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30 transition-all rounded-lg"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -169,7 +199,7 @@ export function SectorsManagementClient() {
             emptyTitle="Nenhum setor encontrado"
             emptyDescription="Crie o seu primeiro setor clicando no botão acima."
           />
-        </SectionCard>
+        </motion.div>
       </div>
 
       <SectorModal
@@ -192,6 +222,6 @@ export function SectorsManagementClient() {
         isConfirming={isDeleting}
         variant="destructive"
       />
-    </>
+    </motion.div>
   );
 }

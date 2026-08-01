@@ -48,16 +48,15 @@ export interface ChartWidgetProps {
 }
 
 const DEFAULT_COLORS = [
-  "#3b82f6", // Blue
-  "#10b981", // Emerald
-  "#f59e0b", // Amber
-  "#6366f1", // Indigo
-  "#ec4899", // Pink
-  "#8b5cf6", // Violet
-  "#14b8a6", // Teal
-  "#ef4444", // Red
-  "#06b6d4", // Cyan
-  "#f97316", // Orange
+  "#3b82f6", // 1. Blue
+  "#8b5cf6", // 2. Violet
+  "#10b981", // 3. Emerald
+  "#f59e0b", // 4. Amber
+  "#f43f5e", // 5. Rose
+  "#06b6d4", // 6. Cyan
+  "#6366f1", // 7. Indigo
+  "#14b8a6", // 8. Teal
+  "#ec4899", // 9. Pink
 ];
 
 // Custom Tooltip estilizada
@@ -186,11 +185,10 @@ export function ChartWidget({
                 tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 axisLine={{ stroke: "var(--border)" }}
                 tickLine={false}
-                angle={hasLongLabels ? -30 : 0}
+                angle={hasLongLabels ? -45 : 0}
                 textAnchor={hasLongLabels ? "end" : "middle"}
-                height={hasLongLabels ? 60 : 30}
-                interval={0}
-                tickFormatter={(value: string) => value.length > 15 ? value.slice(0, 15) + "..." : value}
+                height={hasLongLabels ? 70 : 30}
+                tickFormatter={(value: string) => value.length > 12 ? value.slice(0, 12) + "..." : value}
               />
               <YAxis
                 tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}

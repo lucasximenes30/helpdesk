@@ -564,34 +564,52 @@ export function TicketModal({
                   </div>
 
                   {/* Horários e Cálculo Automático de Tempo */}
-                  <div className="grid grid-cols-3 gap-2 bg-muted/20 p-2.5 rounded-lg border border-border/50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-lg border border-border/50">
                     <div>
-                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block">
-                        Hora Início
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">
+                        Início
                       </label>
-                      <input
-                        type="datetime-local"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                        className="w-full text-xs bg-background border border-input rounded px-2 py-1 mt-1"
-                      />
+                      <div className="flex items-center gap-2 w-full bg-background border border-input rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-primary transition-all">
+                        <input
+                          type="date"
+                          value={startTime ? startTime.split('T')[0] : ''}
+                          onChange={(e) => setStartTime(`${e.target.value}T${startTime ? startTime.split('T')[1] : '00:00'}`)}
+                          className="bg-transparent outline-none text-sm w-[120px]"
+                        />
+                        <span className="text-muted-foreground text-xs font-medium">às</span>
+                        <input
+                          type="time"
+                          value={startTime ? startTime.split('T')[1] : ''}
+                          onChange={(e) => setStartTime(`${startTime ? startTime.split('T')[0] : new Date().toISOString().split('T')[0]}T${e.target.value}`)}
+                          className="bg-transparent outline-none text-sm flex-1"
+                        />
+                      </div>
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-semibold text-muted-foreground block">
-                        Hora Encerramento
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">
+                        Fim
                       </label>
-                      <input
-                        type="datetime-local"
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
-                        className="w-full text-xs bg-background border border-input rounded px-2 py-1 mt-1"
-                      />
+                      <div className="flex items-center gap-2 w-full bg-background border border-input rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-primary transition-all">
+                        <input
+                          type="date"
+                          value={endTime ? endTime.split('T')[0] : ''}
+                          onChange={(e) => setEndTime(`${e.target.value}T${endTime ? (endTime.split('T')[1] || '00:00') : '00:00'}`)}
+                          className="bg-transparent outline-none text-sm w-[120px]"
+                        />
+                        <span className="text-muted-foreground text-xs font-medium">às</span>
+                        <input
+                          type="time"
+                          value={endTime ? endTime.split('T')[1] : ''}
+                          onChange={(e) => setEndTime(`${endTime ? endTime.split('T')[0] : new Date().toISOString().split('T')[0]}T${e.target.value}`)}
+                          className="bg-transparent outline-none text-sm flex-1"
+                        />
+                      </div>
                     </div>
-                    <div className="flex flex-col items-center justify-center bg-primary/10 rounded p-1 border border-primary/20">
-                      <span className="text-[10px] uppercase font-semibold text-primary">
-                        Tempo Total (Auto)
+                    <div className="md:col-span-2 flex flex-col items-center justify-center bg-primary/10 rounded-md p-3 border border-primary/20 shadow-sm mt-2">
+                      <span className="text-xs font-medium text-primary mb-0.5">
+                        Tempo total (auto)
                       </span>
-                      <span className="text-sm font-bold font-mono text-primary mt-0.5">
+                      <span className="text-2xl font-bold font-mono text-primary">
                         {getFormattedDuration()}
                       </span>
                     </div>

@@ -25,7 +25,12 @@ export function ImportExcelModal({
 }: ImportExcelModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<{ success?: boolean; importedCount?: number; errors?: string[] } | null>(null);
+  const [result, setResult] = useState<{
+    success: boolean;
+    importedCount?: number;
+    errors?: string[];
+    message?: string;
+  } | null>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files.length > 0) {
@@ -54,6 +59,7 @@ export function ImportExcelModal({
           success: true,
           importedCount: data.importedCount,
           errors: data.errors,
+          message: data.message,
         });
         if (data.importedCount > 0) {
           onImported();
@@ -80,7 +86,7 @@ export function ImportExcelModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
-            Importar Chamados (Excel)
+            Importar Chamados (CSV)
           </DialogTitle>
           <DialogDescription>
             Envie sua planilha de controle atual para importar os chamados em massa para o sistema.
@@ -95,14 +101,14 @@ export function ImportExcelModal({
                 Arraste ou clique para selecionar
               </p>
               <p className="text-xs text-muted-foreground mb-4">
-                Apenas arquivos .xlsx são suportados
+                Apenas arquivos .csv são suportados
               </p>
               <label className="cursor-pointer inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-xs font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
                 Selecionar Arquivo
                 <input
                   type="file"
                   className="hidden"
-                  accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  accept=".csv, text/csv"
                   onChange={handleFileChange}
                 />
               </label>
@@ -127,6 +133,12 @@ export function ImportExcelModal({
                 <p className="text-sm text-emerald-600 mt-1">
                   <strong>{result.importedCount}</strong> chamados importados com sucesso!
                 </p>
+                {result.message && (
+                  <div className="mt-3 p-3 bg-emerald-500/20 rounded text-xs text-emerald-800 text-left">
+                    <strong className="block mb-1">Relatório de Reuso:</strong>
+                    {result.message}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center text-center p-4 bg-red-500/10 border border-red-500/20 rounded-lg">

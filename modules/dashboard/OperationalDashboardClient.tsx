@@ -2,487 +2,294 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Plus,
-  RefreshCw,
-  ArrowRight,
-  UserCheck,
-  BarChart3,
-  ListTodo,
-  AlertTriangle,
-  Building2,
-  Calendar,
-  ExternalLink,
-} from "lucide-react";
+import { motion, type Variants } from "framer-motion";
+import { 
+  Headset, PushPin, ChartBar, Fire, Users, ListChecks, MonitorPlay,
+  Plus, UserPlus, Desktop, HardDrives, Clock, CheckCircle, WarningCircle 
+} from "@phosphor-icons/react";
 import { DashboardSkeleton } from "./DashboardSkeleton";
-import { MonthYearSelector } from "@/components/common/MonthYearSelector";
+import { Button } from "@/components/ui/button";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 30, filter: "blur(5px)" },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 100, damping: 20 } 
+  }
+};
 
 export function OperationalDashboardClient() {
   const [loading, setLoading] = useState(true);
-  const [monthYear, setMonthYear] = useState<string>("");
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    inProgress: 0,
-    waiting: 0,
-    unassigned: 0,
-    resolvedToday: 0,
-  });
+  const [data, setData] = useState<any>(null);
 
-  const loadOperationalData = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.set("limit", "100");
-      params.set("sortBy", "createdAt");
-      params.set("sortOrder", "desc");
-      if (monthYear && monthYear !== "ALL") {
-        params.set("monthYear", monthYear);
-      } else if (monthYear === "ALL") {
-        const year = new Date().getFullYear();
-        params.set("startDate", `${year}-01-01`);
-        params.set("endDate", `${year}-12-31`);
-      }
-
-      const res = await fetch(`/api/tickets?${params.toString()}`);
+      const res = await fetch(`/api/dashboard/operational?period=TODAY`);
       if (res.ok) {
         const json = await res.json();
-        const list = json.data || json.tickets || [];
-        setTickets(list);
-
-        const now = new Date();
-        const todayStr = now.toISOString().slice(0, 10);
-
-        const inProg = list.filter((t: any) => t.status === "ABERTO").length;
-        const wait = list.filter(
-          (t: any) => t.status === "AGUARDANDO_USUARIO" || t.status === "AGUARDANDO_PECA"
-        ).length;
-        const unass = list.filter((t: any) => !t.technicianId).length;
-        const resToday = list.filter((t: any) => {
-          if (t.status !== "RESOLVIDO") return false;
-          const closedDate = t.closedAt || t.updatedAt;
-          if (!closedDate) return false;
-          return closedDate.slice(0, 10) === todayStr;
-        }).length;
-
-        setStats({
-          inProgress: inProg,
-          waiting: wait,
-          unassigned: unass,
-          resolvedToday: resToday,
-        });
+        setData(json);
       }
     } catch (e) {
-      console.error("Erro ao carregar dados do dashboard operacional:", e);
+      console.error("Erro ao carregar dashboard:", e);
     } finally {
       setLoading(false);
     }
-  }, [monthYear]);
+  }, []);
 
   useEffect(() => {
-    loadOperationalData();
-  }, [loadOperationalData]);
+    loadData();
+    const interval = setInterval(() => loadData(), 30000);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
-  if (loading && tickets.length === 0) {
-    return <DashboardSkeleton />;
-  }
+  if (!data && loading) return <DashboardSkeleton />;
+  if (!data) return <div className="p-8 text-center text-muted-foreground">Erro ao carregar dashboard.</div>;
 
-  const inProgressTickets = tickets.filter((t) => t.status === "ABERTO").slice(0, 5);
-  const recentTickets = tickets.slice(0, 7);
-
-  function getStatusBadge(status: string) {
-    switch (status) {
-      case "ABERTO":
-        return (
-          <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/30 font-semibold text-[11px]">
-            Aberto
-          </Badge>
-        );
-      case "RESOLVIDO":
-        return (
-          <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 font-semibold text-[11px]">
-            Resolvido
-          </Badge>
-        );
-      case "AGUARDANDO_USUARIO":
-        return (
-          <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/30 font-semibold text-[11px]">
-            Aguardando
-          </Badge>
-        );
-      case "AGUARDANDO_PECA":
-        return (
-          <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/30 font-semibold text-[11px]">
-            Agendado
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  }
-
-  function getPriorityBadge(priority: string) {
-    switch (priority) {
-      case "CRITICA":
-        return <Badge variant="destructive" className="text-[10px]">Crítica</Badge>;
-      case "ALTA":
-        return <Badge className="bg-rose-500/15 text-rose-500 border-rose-500/30 text-[10px]">Alta</Badge>;
-      case "MEDIA":
-        return <Badge variant="secondary" className="text-[10px]">Média</Badge>;
-      case "BAIXA":
-        return <Badge variant="outline" className="text-[10px]">Baixa</Badge>;
-      default:
-        return null;
-    }
-  }
+  const { kpis, charts, lists, userName } = data;
+  const firstName = userName ? userName.split(' ')[0] : 'Suporte TI';
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* CABEÇALHO OPERACIONAL (ÁGIL E LEVE) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border rounded-xl p-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
-            <ListTodo className="h-5 w-5" />
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="flex flex-col h-full w-full max-w-7xl mx-auto py-12 px-4 md:px-8 bg-background min-h-[100dvh]"
+    >
+      
+      {/* HEADER TENSION */}
+      <motion.div variants={itemVariants} className="mb-12 flex items-end justify-between">
+        <div>
+          <div className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-medium bg-primary/10 text-primary w-max mb-3">
+            Dashboard Operacional
           </div>
-          <div>
-            <h2 className="text-base font-bold text-foreground">
-              Painel Operacional de Fila de TI
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Acompanhamento rápido, chamados em tratativa e atalhos diários da equipe
-            </p>
-          </div>
+          <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight text-foreground">
+            Olá, {firstName}.
+          </h1>
+          <p className="text-base text-muted-foreground mt-2 max-w-[65ch] leading-relaxed">
+            Seu centro de comando inteligente. Acompanhe métricas críticas, SLA em tempo real e a distribuição atual da sua equipe.
+          </p>
         </div>
+      </motion.div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <MonthYearSelector
-            value={monthYear || "ALL"}
-            onChange={(my) => setMonthYear(my === "ALL" ? "ALL" : my)}
-            includeAllYear={true}
-          />
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadOperationalData}
-            title="Atualizar painel"
-            className="h-9"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
-
-          <Link href="/chamados">
-            <Button size="sm" className="h-9 font-semibold">
-              <Plus className="h-4 w-4 mr-1.5" />
-              Novo Chamado
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* 4 CARDS DE RESUMO RÁPIDO OPERACIONAL */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Aberto */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Aberto
-              </span>
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
-                <Clock className="h-4 w-4" />
+      {/* THE ASYMMETRICAL BENTO GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+        
+        {/* HERO KPI CARDS - SPANNING LEFT */}
+        <motion.div variants={itemVariants} className="md:col-span-8 grid grid-cols-2 gap-6">
+          <Link href="/chamados?status=ABERTO" className="block group w-full hover-lift">
+            <div className="glass-card rounded-[2rem] p-8 h-full relative overflow-hidden flex flex-col justify-between min-h-[220px]">
+              <div className="absolute -right-4 -top-4 p-4 opacity-5 group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
+                <WarningCircle weight="duotone" className="w-32 h-32 text-primary" />
               </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold text-amber-500">
-                {stats.inProgress}
-              </span>
-              <span className="text-xs text-muted-foreground font-medium">
-                Em tratativa
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Chamados abertos com analista atribuído
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Card 2: Pendências Ativas */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Aguardando / Pendentes
-              </span>
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
-                <AlertCircle className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold text-foreground">
-                {stats.waiting}
-              </span>
-              <span className="text-xs text-muted-foreground font-medium">
-                Pausados
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Aguardando fornecedor, peças ou retorno
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Card 3: Fila Geral (Sem Técnico) */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Fila Geral (Sem Técnico)
-              </span>
-              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
-                <UserCheck className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold text-purple-500">
-                {stats.unassigned}
-              </span>
-              <span className="text-xs text-muted-foreground font-medium">
-                Para atribuição
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Aguardando analista de TI assumir
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Card 4: Resolvidos Hoje */}
-        <Card className="border-border bg-card shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Resolvidos Hoje
-              </span>
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold text-emerald-500">
-                {stats.resolvedToday}
-              </span>
-              <span className="text-xs text-emerald-600 font-semibold">
-                Resolvidos hoje
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Atendimentos finalizados nas últimas 24h
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* LINHA DE ATALHOS RÁPIDOS */}
-      <div className="bg-muted/20 border border-border/60 rounded-xl p-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-          Atalhos Rápidos de Operação
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Link href="/chamados" className="block">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-md bg-primary/10 text-primary">
-                  <Plus className="h-4 w-4" />
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="p-3 bg-primary/10 rounded-2xl">
+                  <WarningCircle weight="bold" className="w-6 h-6 text-primary" />
                 </div>
-                <span className="text-xs font-bold text-foreground">
-                  Abrir Novo Chamado
-                </span>
+                <span className="text-sm font-semibold text-foreground/70 uppercase tracking-wider">Abertos</span>
               </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              <div className="relative z-10 mt-6">
+                <div className="text-6xl font-display font-bold text-foreground tracking-tighter">
+                  {kpis.inProgress}
+                </div>
+              </div>
             </div>
           </Link>
 
-          <Link href="/chamados?technicianId=null" className="block">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-md bg-purple-500/10 text-purple-500">
-                  <UserCheck className="h-4 w-4" />
-                </div>
-                <span className="text-xs font-bold text-foreground">
-                  Fila Geral Sem Técnico
-                </span>
+          <Link href="/chamados?technicianId=null" className="block group w-full hover-lift">
+            <div className="glass-card rounded-[2rem] p-8 h-full relative overflow-hidden flex flex-col justify-between min-h-[220px]">
+              <div className="absolute -right-4 -top-4 p-4 opacity-5 group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
+                <Headset weight="duotone" className="w-32 h-32 text-warning" />
               </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </Link>
-
-          <Link href="/chamados?status=ABERTO" className="block">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-md bg-amber-500/10 text-amber-500">
-                  <Clock className="h-4 w-4" />
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="p-3 bg-warning/10 rounded-2xl">
+                  <Headset weight="bold" className="w-6 h-6 text-warning" />
                 </div>
-                <span className="text-xs font-bold text-foreground">
-                  Chamados Aberto
-                </span>
+                <span className="text-sm font-semibold text-foreground/70 uppercase tracking-wider">Fila Geral</span>
               </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </Link>
-
-          <Link href="/relatorios" className="block">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-md bg-primary text-primary-foreground">
-                  <BarChart3 className="h-4 w-4" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-foreground block">
-                    BI & Relatórios Executivos
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    Ver consolidados e PDF
-                  </span>
+              <div className="relative z-10 mt-6">
+                <div className="text-6xl font-display font-bold text-foreground tracking-tighter">
+                  {kpis.unassigned}
                 </div>
               </div>
-              <ExternalLink className="h-4 w-4 text-primary" />
             </div>
           </Link>
-        </div>
-      </div>
+        </motion.div>
 
-      {/* GRADE COM DUAS SEÇÕES OPERACIONAIS: FILA ATIVA EM TRATATIVA + CHAMADOS RECENTES */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* COLUNA 1: CHAMADOS ATUALMENTE EM ATENDIMENTO (1 COLUNA) */}
-        <Card className="border-border bg-card shadow-sm lg:col-span-1">
-          <CardHeader className="pb-3 border-b border-border/60 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <Clock className="h-4 w-4 text-amber-500" />
-              Fila em Atendimento (Analistas)
-            </CardTitle>
-            <Link href="/chamados?status=ABERTO">
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2">
-                Ver todos
-              </Button>
-            </Link>
-          </CardHeader>
-          <CardContent className="p-4 space-y-3">
-            {inProgressTickets.length > 0 ? (
-              inProgressTickets.map((t) => (
-                <div
-                  key={t.id}
-                  className="p-2.5 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors space-y-1.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold font-mono text-primary">
-                      #{t.number}
-                    </span>
-                    {getPriorityBadge(t.priority)}
-                  </div>
-                  <p className="text-xs font-semibold text-foreground truncate">
-                    {t.title}
-                  </p>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span className="truncate max-w-[120px]">
-                      👤 {t.technician?.name || "Atribuído"}
-                    </span>
-                    <span>🏢 {t.sector?.name || "-"}</span>
+        {/* SLA TOWER - SPANNING RIGHT */}
+        <motion.div variants={itemVariants} className="md:col-span-4 h-full">
+           <div className="glass-card rounded-[2rem] p-8 h-full flex flex-col">
+             <div className="flex justify-between items-center mb-6">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Clock weight="bold" className="w-4 h-4 text-primary" />
+                  Saúde Operacional
+                </h3>
+             </div>
+             <div className="flex-1 flex flex-col justify-center items-center text-center">
+                <div className="relative">
+                  {/* Subtle pulsing background for SLA */}
+                  <motion.div 
+                    animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0.8, 0.5] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    className={cn("absolute inset-0 rounded-full blur-2xl -z-10", kpis.slaPercent >= 90 ? 'bg-success/20' : kpis.slaPercent >= 70 ? 'bg-warning/20' : 'bg-danger/20')}
+                  />
+                  <div className={cn("text-7xl font-display font-bold tracking-tighter", kpis.slaPercent >= 90 ? 'text-success' : kpis.slaPercent >= 70 ? 'text-warning' : 'text-danger')}>
+                    {kpis.slaPercent}<span className="text-3xl">%</span>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-xs text-muted-foreground">
-                <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500/50 mb-2" />
-                Nenhum chamado pendente em atendimento no momento.
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                <p className="text-sm font-medium text-foreground mt-4">Nível Global de SLA</p>
+                <div className="w-full h-2 bg-secondary rounded-full mt-6 overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${kpis.slaPercent}%` }}
+                    transition={{ duration: 1.5, type: "spring", bounce: 0 }}
+                    className={cn("h-full", kpis.slaPercent >= 90 ? 'bg-success' : kpis.slaPercent >= 70 ? 'bg-warning' : 'bg-danger')}
+                  />
+                </div>
+             </div>
+           </div>
+        </motion.div>
 
-        {/* COLUNA 2 E 3: CHAMADOS RECENTES (2 COLUNAS) */}
-        <Card className="border-border bg-card shadow-sm lg:col-span-2">
-          <CardHeader className="pb-3 border-b border-border/60 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-sm font-bold text-foreground">
-                Chamados Recentes Ingressados
-              </CardTitle>
-              <p className="text-[11px] text-muted-foreground">
-                Últimos chamados abertos e sua situação atual
-              </p>
-            </div>
-            <Link href="/chamados">
-              <Button variant="outline" size="sm" className="h-7 text-xs">
-                Ver Tabela Completa
+        {/* CHART SECTION */}
+        <motion.div variants={itemVariants} className="md:col-span-8 glass-card rounded-[2rem] p-8">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-lg font-bold flex items-center gap-2 text-foreground">
+              <ChartBar weight="duotone" className="w-6 h-6 text-primary" />
+              Volume por Hora
+            </h3>
+          </div>
+          <div className="h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={charts.byHour} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B', fontFamily: 'var(--font-outfit)' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B', fontFamily: 'var(--font-outfit)' }} />
+                <Tooltip 
+                  cursor={{ fill: 'var(--secondary)', opacity: 0.5 }} 
+                  contentStyle={{ borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.08)' }} 
+                />
+                <Bar dataKey="value" radius={[8, 8, 8, 8]} maxBarSize={32}>
+                  {charts.byHour.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={entry.value > 5 ? 'var(--warning)' : 'var(--primary-brand)'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* QUICK ACTIONS ISLAND */}
+        <motion.div variants={itemVariants} className="md:col-span-4 glass-card rounded-[2rem] p-8 flex flex-col justify-between">
+           <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-6">
+              <MonitorPlay weight="bold" className="w-4 h-4 text-emerald-500" />
+              Ações Rápidas
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <Link href="/chamados" className="block w-full">
+                <Button variant="outline" className="w-full h-auto py-6 flex flex-col items-center justify-center gap-4 bg-secondary/30 hover:bg-white dark:hover:bg-slate-800 border-border/50 rounded-2xl hover-lift">
+                  <div className="p-3 bg-emerald-500/10 rounded-full">
+                    <Plus weight="bold" className="h-6 w-6 text-emerald-500" />
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">Novo Chamado</span>
+                </Button>
+              </Link>
+              <Link href="/chamados?technicianId=null" className="block w-full">
+                <Button variant="outline" className="w-full h-auto py-6 flex flex-col items-center justify-center gap-4 bg-secondary/30 hover:bg-white dark:hover:bg-slate-800 border-border/50 rounded-2xl hover-lift">
+                  <div className="p-3 bg-purple-500/10 rounded-full">
+                    <UserPlus weight="bold" className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">Assumir Fila</span>
+                </Button>
+              </Link>
+              <Button variant="outline" className="w-full h-auto py-6 flex flex-col items-center justify-center gap-4 bg-secondary/30 hover:bg-white dark:hover:bg-slate-800 border-border/50 rounded-2xl hover-lift">
+                <div className="p-3 bg-blue-500/10 rounded-full">
+                  <Desktop weight="bold" className="h-6 w-6 text-blue-500" />
+                </div>
+                <span className="text-sm font-semibold text-foreground">Acesso Remoto</span>
               </Button>
-            </Link>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border/60 text-[11px] uppercase font-bold text-muted-foreground bg-muted/20">
-                  <th className="py-2.5 px-4">#ID</th>
-                  <th className="py-2.5 px-4">Título / Assunto</th>
-                  <th className="py-2.5 px-4">Solicitante</th>
-                  <th className="py-2.5 px-4">Setor</th>
-                  <th className="py-2.5 px-4">Status</th>
-                  <th className="py-2.5 px-4 text-right">Ação</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60 text-xs">
-                {recentTickets.length > 0 ? (
-                  recentTickets.map((t) => (
-                    <tr
-                      key={t.id}
-                      className="hover:bg-muted/30 transition-colors"
-                    >
-                      <td className="py-3 px-4 font-bold font-mono text-primary">
-                        #{t.number}
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-foreground max-w-[200px] truncate">
-                        {t.title}
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        {t.requester?.name || t.requesterName || "Solicitante"}
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        {t.sector?.name || "-"}
-                      </td>
-                      <td className="py-3 px-4">{getStatusBadge(t.status)}</td>
-                      <td className="py-3 px-4 text-right">
-                        <Link href={`/chamados`}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs font-semibold text-primary"
-                          >
-                            Abrir
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="text-center py-10 text-xs text-muted-foreground"
-                    >
-                      Nenhum chamado encontrado no sistema.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+              <Button variant="outline" className="w-full h-auto py-6 flex flex-col items-center justify-center gap-4 bg-secondary/30 hover:bg-white dark:hover:bg-slate-800 border-border/50 rounded-2xl hover-lift">
+                <div className="p-3 bg-amber-500/10 rounded-full">
+                  <HardDrives weight="bold" className="h-6 w-6 text-amber-500" />
+                </div>
+                <span className="text-sm font-semibold text-foreground">Servidores</span>
+              </Button>
+            </div>
+        </motion.div>
+
+        {/* TEAM STATUS */}
+        <motion.div variants={itemVariants} className="md:col-span-5 glass-card rounded-[2rem] p-8">
+           <h3 className="text-lg font-bold flex items-center gap-2 text-foreground mb-6">
+              <Users weight="duotone" className="w-6 h-6 text-purple-500" />
+              Equipe em Operação
+            </h3>
+            <div className="space-y-5">
+              {lists.teamStatus.map((t: any) => (
+                <div key={t.id} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-secondary border-2 border-background flex items-center justify-center text-sm font-bold text-foreground">
+                        {t.name.substring(0,2).toUpperCase()}
+                      </div>
+                      <div className={cn("absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background", t.activeCount > 0 ? 'bg-success' : 'bg-warning')} />
+                    </div>
+                    <div>
+                      <div className="text-base font-semibold text-foreground">{t.name}</div>
+                      <div className="text-sm text-muted-foreground mt-0.5">
+                        {t.activeCount > 0 ? 'Em atendimento' : 'Livre / Pausado'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center font-mono font-bold text-foreground">
+                    {t.activeCount}
+                  </div>
+                </div>
+              ))}
+            </div>
+        </motion.div>
+
+        {/* RECENT EVENTS & ALERTS */}
+        <motion.div variants={itemVariants} className="md:col-span-7 flex flex-col gap-6">
+          <div className="glass-card rounded-[2rem] p-8 flex-1">
+             <h3 className="text-lg font-bold flex items-center gap-2 text-foreground mb-6">
+                <ListChecks weight="duotone" className="w-6 h-6 text-primary" />
+                Timeline Log
+              </h3>
+              <div className="space-y-6">
+                {lists.recentEvents.slice(0, 4).map((ev: any, i: number) => (
+                  <div key={ev.id} className="flex items-start gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground shrink-0 border border-border">
+                        {ev.actor.substring(0,2).toUpperCase()}
+                      </div>
+                      {i !== Math.min(lists.recentEvents.length, 4) - 1 && (
+                        <div className="w-0.5 h-6 bg-border mt-2" />
+                      )}
+                    </div>
+                    <div className="pt-2 flex-1">
+                      <p className="text-base text-foreground leading-snug">
+                        <span className="font-bold">{ev.actor}</span> <span className="text-muted-foreground">{ev.action}</span> <span className="text-primary font-bold cursor-pointer hover:underline">{ev.ticket}</span>
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1 font-mono">{ev.time} · {ev.date}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+          </div>
+        </motion.div>
+
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -630,3 +630,167 @@ export async function getDashboardStats(
     },
   };
 }
+
+export async function getOperationalDashboardData(params: DashboardFilterParams = {}) {
+  const range = getPeriodRange(params);
+
+  // Filtros
+  const whereCurrent: Prisma.TicketWhereInput = {
+    deletedAt: null,
+    ticketDate: { gte: range.start, lte: range.end },
+  };
+
+  if (params.sectorId) whereCurrent.sectorId = params.sectorId;
+  if (params.serviceId) whereCurrent.serviceId = params.serviceId;
+  if (params.technicianId) whereCurrent.technicianId = params.technicianId;
+
+  // Busca paralela
+  const [tickets, history, activeTechs] = await Promise.all([
+    prisma.ticket.findMany({
+      where: whereCurrent,
+      include: {
+        sector: true,
+        service: true,
+        technician: true,
+        requester: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.ticketHistory.findMany({
+      where: {
+        createdAt: { gte: range.start, lte: range.end },
+      },
+      include: {
+        ticket: { select: { ticketNumber: true, problem: true } },
+        actor: { select: { name: true, avatar: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    }),
+    prisma.user.findMany({
+      where: { role: { in: ["ADMIN", "TI"] }, isActive: true },
+      select: { id: true, name: true, email: true, avatar: true },
+    }),
+  ]);
+
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+
+  let inProgress = 0;
+  let waiting = 0;
+  let unassigned = 0;
+  let resolvedToday = 0;
+  let criticalCount = 0;
+  let totalSlaMet = 0;
+  let totalWithSla = 0;
+  let totalResolvedTime = 0;
+  
+  const ticketsByHour = Array(24).fill(0);
+  const criticalTickets: any[] = [];
+  const techStats: Record<string, { id: string, name: string, activeCount: number, resolvedToday: number }> = {};
+
+  activeTechs.forEach(tech => {
+    techStats[tech.id] = { id: tech.id, name: tech.name, activeCount: 0, resolvedToday: 0 };
+  });
+
+  tickets.forEach(t => {
+    // Basic counts
+    if (t.status === "ABERTO") inProgress++;
+    if (t.status === "AGUARDANDO_USUARIO" || t.status === "AGUARDANDO_PECA") waiting++;
+    if (!t.technicianId) unassigned++;
+    
+    // Critical
+    if (t.status !== "RESOLVIDO" && t.status !== "CANCELADO" && (t.priority === "ALTA" || t.priority === "CRITICA")) {
+      criticalCount++;
+      criticalTickets.push({
+        id: t.id,
+        number: t.ticketNumber,
+        title: t.problem,
+        priority: t.priority,
+        dueDate: t.dueDate,
+        technicianName: t.technician?.name || null
+      });
+    }
+
+    // Resolved today
+    if (t.status === "RESOLVIDO") {
+      const closedDate = new Date(t.updatedAt).toISOString().slice(0, 10);
+      if (closedDate === todayStr) {
+        resolvedToday++;
+        if (t.technicianId && techStats[t.technicianId]) {
+          techStats[t.technicianId].resolvedToday++;
+        }
+      }
+      
+      if (typeof t.totalTimeMinutes === 'number') {
+         totalResolvedTime += t.totalTimeMinutes;
+      }
+    }
+
+    // Active per tech
+    if (t.status !== "RESOLVIDO" && t.status !== "CANCELADO" && t.technicianId && techStats[t.technicianId]) {
+      techStats[t.technicianId].activeCount++;
+    }
+
+    // SLA calculation
+    if (t.dueDate) {
+      totalWithSla++;
+      if (t.status === "RESOLVIDO") {
+        if (new Date(t.updatedAt) <= new Date(t.dueDate)) totalSlaMet++;
+      } else if (t.status !== "CANCELADO") {
+        if (now <= new Date(t.dueDate)) totalSlaMet++;
+      }
+    }
+
+    // Tickets by hour
+    const hour = new Date(t.createdAt).getHours();
+    ticketsByHour[hour]++;
+  });
+
+  // Calculate SLA %
+  const slaPercent = totalWithSla > 0 ? Math.round((totalSlaMet / totalWithSla) * 100) : 100;
+  
+  // Calculate Avg Time
+  const resolvedCount = tickets.filter(t => t.status === "RESOLVIDO").length;
+  const avgTimeMinutes = resolvedCount > 0 ? Math.round(totalResolvedTime / resolvedCount) : 0;
+
+  // Format charts
+  const byHourChart = ticketsByHour.map((count, hour) => ({
+    name: `${String(hour).padStart(2, '0')}:00`,
+    value: count
+  })).filter((_, hour) => hour >= 6 && hour <= 20); // Only business hours to avoid empty space
+
+  const teamList = Object.values(techStats).sort((a, b) => b.activeCount - a.activeCount);
+  const rankingList = [...teamList].sort((a, b) => b.resolvedToday - a.resolvedToday).slice(0, 5);
+
+  return {
+    kpis: {
+      total: tickets.length,
+      inProgress,
+      waiting,
+      unassigned,
+      resolvedToday,
+      criticalCount,
+      slaPercent,
+      avgTimeMinutes,
+      avgTimeFormatted: formatMinutes(avgTimeMinutes),
+    },
+    charts: {
+      byHour: byHourChart,
+    },
+    lists: {
+      criticalTickets: criticalTickets.slice(0, 5),
+      recentEvents: history.map(h => ({
+        id: h.id,
+        actor: h.actorName || "Sistema",
+        action: h.description,
+        ticket: h.ticket ? `#${h.ticket.ticketNumber}` : "",
+        time: new Date(h.createdAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }),
+        date: new Date(h.createdAt).toLocaleDateString("pt-BR"),
+      })),
+      teamStatus: teamList,
+      ranking: rankingList,
+    },
+    lastUpdated: now.toISOString(),
+  };
+}

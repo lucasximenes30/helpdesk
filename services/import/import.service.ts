@@ -271,7 +271,7 @@ async function resolveRequester(
   const generatedEmail = `${key
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "")}.${Date.now()}@cgconstrucoes.local`;
+    .replace(/[^a-z0-9]/g, "")}@cgconstrucoes.local`;
 
   const created = await prisma.requester.create({
     data: {

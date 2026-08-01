@@ -15,21 +15,40 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { motion, type Variants } from "framer-motion";
 import {
   UserPlus,
-  Search,
-  MoreHorizontal,
-  Edit3,
-  KeyRound,
-  UserCheck,
-  UserX,
-  Trash2,
-  RefreshCw,
-} from "lucide-react";
+  MagnifyingGlass,
+  DotsThree,
+  PencilSimple,
+  Key,
+  UserCircleCheck,
+  UserMinus,
+  Trash,
+  ArrowsClockwise,
+} from "@phosphor-icons/react";
 import { UserModal } from "../users/UserModal";
 import { UserPasswordModal } from "../users/UserPasswordModal";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { UserRow } from "../users/UsersManagementClient";
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 100, damping: 20 } 
+  }
+};
 
 export function RequestersManagementClient() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -159,7 +178,7 @@ export function RequestersManagementClient() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
+                <DotsThree className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -171,7 +190,7 @@ export function RequestersManagementClient() {
                   setIsUserModalOpen(true);
                 }}
               >
-                <Edit3 className="mr-2 h-4 w-4" /> Editar Cadastro
+                <PencilSimple className="mr-2 h-4 w-4" /> Editar Cadastro
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
@@ -179,18 +198,18 @@ export function RequestersManagementClient() {
                   setIsPassModalOpen(true);
                 }}
               >
-                <KeyRound className="mr-2 h-4 w-4" /> Redefinir Senha
+                <Key className="mr-2 h-4 w-4" /> Redefinir Senha
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handleToggleStatus(u)}>
                 {u.isActive ? (
                   <>
-                    <UserX className="mr-2 h-4 w-4 text-amber-600" />
+                    <UserMinus className="mr-2 h-4 w-4 text-amber-600" />
                     <span className="text-amber-600">Desativar Acesso</span>
                   </>
                 ) : (
                   <>
-                    <UserCheck className="mr-2 h-4 w-4 text-emerald-600" />
+                    <UserCircleCheck className="mr-2 h-4 w-4 text-emerald-600" />
                     <span className="text-emerald-600">Reativar Acesso</span>
                   </>
                 )}
@@ -199,7 +218,7 @@ export function RequestersManagementClient() {
                 onClick={() => setConfirmDeleteUser(u)}
                 className="text-red-600 focus:text-red-600 focus:bg-red-50"
               >
-                <Trash2 className="mr-2 h-4 w-4" /> Excluir Solicitante
+                <Trash className="mr-2 h-4 w-4" /> Excluir Solicitante
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -209,31 +228,42 @@ export function RequestersManagementClient() {
   ];
 
   return (
-    <>
-      <PageHeader
-        title="Solicitantes"
-        breadcrumb={["Início", "Solicitantes"]}
-        description="Gestão de contatos autorizados a solicitar suporte técnico."
-      >
-        <Button
-          onClick={() => {
-            setUserToEdit(null);
-            setIsUserModalOpen(true);
-          }}
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6"
+    >
+      <motion.div variants={itemVariants}>
+        <PageHeader
+          title="Solicitantes"
+          breadcrumb={["Início", "Solicitantes"]}
+          description="Gestão de contatos autorizados a solicitar suporte técnico."
         >
-          <UserPlus className="h-4 w-4 mr-2" />
-          Novo Solicitante
-        </Button>
-      </PageHeader>
+          <Button
+            onClick={() => {
+              setUserToEdit(null);
+              setIsUserModalOpen(true);
+            }}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Novo Solicitante
+          </Button>
+        </PageHeader>
+      </motion.div>
 
       <div className="mt-6">
-        <SectionCard>
+        <motion.div variants={itemVariants} className="glass-card rounded-[2rem] p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-foreground">Lista de Solicitantes</h2>
+            <p className="text-sm text-muted-foreground">Usuários externos autorizados a abrir chamados.</p>
+          </div>
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome ou e-mail..."
-                className="pl-9"
+                className="pl-9 h-10 bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30 transition-all rounded-lg"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -249,7 +279,7 @@ export function RequestersManagementClient() {
                 <option value="INACTIVE">Inativos</option>
               </select>
               <Button variant="outline" size="icon" onClick={() => fetchUsers()}>
-                <RefreshCw className="h-4 w-4 text-slate-500" />
+                <ArrowsClockwise className="h-4 w-4 text-muted-foreground" />
               </Button>
             </div>
           </div>
@@ -288,7 +318,7 @@ export function RequestersManagementClient() {
               </div>
             </div>
           )}
-        </SectionCard>
+        </motion.div>
       </div>
 
       <UserModal
@@ -318,6 +348,6 @@ export function RequestersManagementClient() {
         isConfirming={isDeleting}
         variant="destructive"
       />
-    </>
+    </motion.div>
   );
 }

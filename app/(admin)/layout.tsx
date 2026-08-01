@@ -16,6 +16,10 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  if (session.role === "SOLICITANTE") {
+    redirect("/meus-chamados");
+  }
+
   return (
     <div className="flex min-h-screen w-full bg-background overflow-x-hidden">
       <Sidebar />

@@ -1,19 +1,20 @@
 import {
-  LayoutDashboard,
+  SquaresFour,
   Ticket,
   Users,
-  Layers,
-  Building2,
-  UserCheck,
-  BarChart3,
-  Settings,
-  type LucideIcon,
-} from "lucide-react";
+  Stack,
+  Buildings,
+  UserList,
+  ChartBar,
+  Gear,
+  type IconProps
+} from "@phosphor-icons/react";
+import React from "react";
 
 export interface NavigationItem {
   title: string;
   href: string;
-  icon: LucideIcon;
+  icon: React.ElementType<IconProps>;
   description: string;
 }
 
@@ -21,7 +22,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard",
-    icon: LayoutDashboard,
+    icon: SquaresFour,
     description: "Visão geral e indicadores",
   },
   {
@@ -39,31 +40,31 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
     title: "Serviços",
     href: "/servicos",
-    icon: Layers,
+    icon: Stack,
     description: "Catálogo de serviços",
   },
   {
     title: "Setores",
     href: "/setores",
-    icon: Building2,
+    icon: Buildings,
     description: "Estrutura e departamentos",
   },
   {
     title: "Solicitantes",
     href: "/solicitantes",
-    icon: UserCheck,
+    icon: UserList,
     description: "Clientes e solicitantes",
   },
   {
     title: "Relatórios",
     href: "/relatorios",
-    icon: BarChart3,
+    icon: ChartBar,
     description: "Estatísticas e relatórios",
   },
   {
     title: "Configurações",
     href: "/configuracoes",
-    icon: Settings,
+    icon: Gear,
     description: "Parâmetros do sistema e White Label",
   },
 ];

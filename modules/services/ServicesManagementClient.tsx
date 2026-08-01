@@ -13,7 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, MoreHorizontal, Edit3, Trash2, Clock } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
+import { Plus, MagnifyingGlass, DotsThree, PencilSimple, Trash, Clock } from "@phosphor-icons/react";
 import { ServiceModal } from "./ServiceModal";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
@@ -24,6 +25,24 @@ export interface ServiceRow {
   description: string | null;
   slaHours: number | null;
 }
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 100, damping: 20 } 
+  }
+};
 
 export function ServicesManagementClient() {
   const [services, setServices] = useState<ServiceRow[]>([]);
@@ -120,7 +139,7 @@ export function ServicesManagementClient() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
+                <DotsThree className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -130,13 +149,13 @@ export function ServicesManagementClient() {
                   setIsModalOpen(true);
                 }}
               >
-                <Edit3 className="mr-2 h-4 w-4" /> Editar
+                <PencilSimple className="mr-2 h-4 w-4" /> Editar
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setConfirmDelete(s)}
                 className="text-red-600 focus:text-red-600"
               >
-                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                <Trash className="mr-2 h-4 w-4" /> Excluir
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -146,31 +165,42 @@ export function ServicesManagementClient() {
   ];
 
   return (
-    <>
-      <PageHeader
-        title="Catálogo de Serviços"
-        breadcrumb={["Início", "Serviços"]}
-        description="Tipos de atendimento, requisições e SLA predefinidos."
-      >
-        <Button
-          onClick={() => {
-            setServiceToEdit(null);
-            setIsModalOpen(true);
-          }}
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6"
+    >
+      <motion.div variants={itemVariants}>
+        <PageHeader
+          title="Catálogo de Serviços"
+          breadcrumb={["Início", "Serviços"]}
+          description="Tipos de atendimento, requisições e SLA predefinidos."
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Serviço
-        </Button>
-      </PageHeader>
+          <Button
+            onClick={() => {
+              setServiceToEdit(null);
+              setIsModalOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Serviço
+          </Button>
+        </PageHeader>
+      </motion.div>
 
       <div className="mt-6">
-        <SectionCard>
+        <motion.div variants={itemVariants} className="glass-card rounded-[2rem] p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-foreground">Lista de Serviços</h2>
+            <p className="text-sm text-muted-foreground">Catálogo de serviços e SLAs associados.</p>
+          </div>
           <div className="flex mb-6">
             <div className="relative w-full max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar serviços ou categorias..."
-                className="pl-9"
+                className="pl-9 h-10 bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30 transition-all rounded-lg"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -184,7 +214,7 @@ export function ServicesManagementClient() {
             emptyTitle="Nenhum serviço encontrado"
             emptyDescription="Crie o seu primeiro serviço no catálogo clicando no botão acima."
           />
-        </SectionCard>
+        </motion.div>
       </div>
 
       <ServiceModal
@@ -207,6 +237,6 @@ export function ServicesManagementClient() {
         isConfirming={isDeleting}
         variant="destructive"
       />
-    </>
+    </motion.div>
   );
 }

@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { CaretLeft, CaretRight, X } from "@phosphor-icons/react";
 import { useSidebar } from "@/hooks/useSidebar";
 import { useWhiteLabel } from "@/hooks/useWhiteLabel";
 import { NAVIGATION_ITEMS } from "@/config/navigation.config";
@@ -15,9 +15,12 @@ export function Sidebar() {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar, isMobileOpen, setMobileOpen } = useSidebar();
   const { config } = useWhiteLabel();
+  const [isHovered, setIsHovered] = React.useState(false);
+
+  const effectivelyCollapsed = isCollapsed && !isHovered;
 
   const renderNavItems = () => (
-    <nav className="flex-1 space-y-1.5 p-3">
+    <nav className="flex-1 space-y-2 p-4">
       {NAVIGATION_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive =
@@ -29,23 +32,24 @@ export function Sidebar() {
             href={item.href}
             onClick={() => setMobileOpen(false)}
             className={cn(
-              "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+              "group relative flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-300",
               isActive
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]"
+                : "bg-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
             )}
-            title={isCollapsed ? item.title : undefined}
+            title={effectivelyCollapsed ? item.title : undefined}
           >
             <Icon
+              weight={isActive ? "fill" : "duotone"}
               className={cn(
-                "h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110",
-                isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-sidebar-accent-foreground"
+                "h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110",
+                isActive ? "text-primary-foreground" : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground"
               )}
             />
-            {!isCollapsed && (
+            {!effectivelyCollapsed && (
               <span className="truncate font-medium">{item.title}</span>
             )}
-            {isCollapsed && (
+            {effectivelyCollapsed && (
               <div className="absolute left-full ml-2 hidden rounded-md bg-popover px-2.5 py-1.5 text-xs font-semibold text-popover-foreground shadow-md group-hover:block z-50 whitespace-nowrap">
                 {item.title}
               </div>
@@ -67,36 +71,46 @@ export function Sidebar() {
       )}
 
       {/* Sidebar para desktop */}
-      <aside
+      <div 
         className={cn(
-          "hidden lg:flex flex-col border-r border-sidebar-border bg-sidebar-background transition-all duration-300 ease-in-out relative shrink-0",
-          isCollapsed ? "w-[72px]" : "w-[260px]"
+          "hidden lg:block shrink-0 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          isCollapsed ? "w-[88px]" : "w-[280px]"
+        )}
+      />
+      
+      <aside
+        onMouseEnter={() => isCollapsed && setIsHovered(true)}
+        onMouseLeave={() => isCollapsed && setIsHovered(false)}
+        className={cn(
+          "hidden lg:flex flex-col border-r border-sidebar-border/50 bg-sidebar-background/95 backdrop-blur-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] fixed left-0 top-0 h-screen z-40",
+          effectivelyCollapsed ? "w-[88px]" : "w-[280px]",
+          isHovered && isCollapsed ? "shadow-2xl border-r-primary/20" : ""
         )}
       >
         {/* White Label Logo Header */}
         <div
           className={cn(
-            "flex h-16 items-center border-b border-sidebar-border px-4 transition-all",
-            isCollapsed ? "justify-center" : "justify-between"
+            "flex h-24 items-center border-b border-sidebar-border/30 transition-all",
+            effectivelyCollapsed ? "justify-center px-0" : "justify-between px-6"
           )}
         >
-          <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 p-1.5">
+          <Link href="/dashboard" className="flex items-center gap-4 overflow-hidden group">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white p-2 border border-white/20 shadow-md transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg">
               <Image
                 src={config.logo}
                 alt={config.systemName}
-                width={32}
-                height={32}
+                width={36}
+                height={36}
                 className="h-full w-full object-contain"
                 priority
               />
             </div>
-            {!isCollapsed && (
+            {!effectivelyCollapsed && (
               <div className="flex flex-col truncate">
-                <span className="text-base font-bold tracking-tight text-foreground truncate">
+                <span className="text-[15px] font-display font-bold tracking-tight text-sidebar-foreground truncate">
                   {config.systemName}
                 </span>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-primary mt-0.5">
                   White Label Ready
                 </span>
               </div>
@@ -108,22 +122,22 @@ export function Sidebar() {
         {renderNavItems()}
 
         {/* Toggle Button no Rodapé do Sidebar */}
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border/30">
           <Button
             variant="ghost"
             onClick={toggleSidebar}
             className={cn(
-              "w-full flex items-center gap-2 justify-center text-muted-foreground hover:text-foreground",
-              !isCollapsed && "justify-start px-3"
+              "w-full flex items-center gap-3 justify-center text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground rounded-xl h-12 transition-all duration-300",
+              !effectivelyCollapsed && "justify-start px-4"
             )}
-            title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+            title={effectivelyCollapsed ? "Expandir menu" : "Recolher menu"}
           >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
+            {effectivelyCollapsed ? (
+              <CaretRight weight="bold" className="h-5 w-5" />
             ) : (
               <>
-                <ChevronLeft className="h-4 w-4" />
-                <span className="text-xs font-semibold">Recolher</span>
+                <CaretLeft weight="bold" className="h-5 w-5" />
+                <span className="text-sm font-bold tracking-wide">Recolher</span>
               </>
             )}
           </Button>
@@ -137,26 +151,27 @@ export function Sidebar() {
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+        <div className="flex h-24 items-center justify-between border-b border-sidebar-border/30 px-6">
           <Link
             href="/dashboard"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 overflow-hidden"
+            className="flex items-center gap-4 overflow-hidden group"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 p-1.5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white p-2 border border-white/20 shadow-md transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg">
               <Image
                 src={config.logo}
                 alt={config.systemName}
-                width={32}
-                height={32}
+                width={36}
+                height={36}
                 className="h-full w-full object-contain"
+                priority
               />
             </div>
             <div className="flex flex-col truncate">
-              <span className="text-base font-bold tracking-tight text-foreground truncate">
+              <span className="text-[15px] font-display font-bold tracking-tight text-sidebar-foreground truncate">
                 {config.systemName}
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-primary mt-0.5">
                 White Label Ready
               </span>
             </div>

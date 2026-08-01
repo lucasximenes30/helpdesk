@@ -40,6 +40,18 @@ As páginas estruturais que antes serviam apenas como **Mockups (Rascunhos Visua
 - **Frontend:** Implementação do catálogo de serviços no componente `ServicesManagementClient.tsx`.
 - O formulário `ServiceModal.tsx` agora permite definir: Nome, Categoria, Descrição e **SLA (horas)** de cada serviço oferecido pela equipe técnica.
 
+### 4.4 Módulo de Chamados (Tickets)
+- **API (Backend):** Implementação de rotas avançadas, incluindo exportação e importação em lote via planilhas Excel/CSV (`/api/tickets/export`, `/api/tickets/import`), e suporte a anexos (`/api/tickets/[id]/attachments`).
+- **Frontend:** Atualização estrutural no `TicketsManagementClient.tsx` para suportar novas funcionalidades de gestão. Inclusão do `ImportExcelModal.tsx` facilitando a migração de dados. Melhorias no `TicketModal.tsx` e nas ações de tickets via `QuickActionModals.tsx`.
+
+### 4.5 Dashboards e Relatórios Avançados
+- **Dashboard Operacional:** Evolução visual e funcional do `OperationalDashboardClient.tsx` e `ChartWidgets.tsx`, incorporando estatísticas dinâmicas de chamados (SLA, status e prioridades).
+- **Emissão de Relatórios:** Aperfeiçoamento da geração de relatórios com layout profissional em PDF (`generateProfessionalPDF.ts`), aplicando as definições de marca da empresa.
+
+### 4.6 Configurações Corporativas (White-Label)
+- **Customização Global:** Implementação do painel `CorporateSettingsClient.tsx` permitindo gerenciar Nome da Empresa, Logo e Cor Primária (via banco de dados).
+- **Integração Visual:** Adoção de um provedor de contexto (`WhiteLabelProvider`) para que as customizações reflitam em toda a interface e nos relatórios gerados.
+
 ---
 
-*Documento gerado automaticamente pelo Arquiteto de Software responsável.*
+*Documento atualizado automaticamente pelo Assistente IA responsável.*

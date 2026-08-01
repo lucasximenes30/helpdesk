@@ -15,18 +15,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { motion, type Variants } from "framer-motion";
 import {
   UserPlus,
-  Search,
-  MoreHorizontal,
-  Edit3,
-  ShieldAlert,
-  KeyRound,
-  UserCheck,
-  UserX,
-  Trash2,
-  RefreshCw,
-} from "lucide-react";
+  MagnifyingGlass,
+  DotsThree,
+  PencilSimple,
+  ShieldWarning,
+  Key,
+  UserCircleCheck,
+  UserMinus,
+  Trash,
+  ArrowsClockwise,
+} from "@phosphor-icons/react";
 import { UserModal } from "./UserModal";
 import { UserPermissionsModal } from "./UserPermissionsModal";
 import { UserPasswordModal } from "./UserPasswordModal";
@@ -43,12 +44,31 @@ export interface UserRow {
   createdAt: string;
 }
 
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 100, damping: 20 } 
+  }
+};
+
 export function UsersManagementClient() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtros, pesquisa e paginação
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
@@ -77,7 +97,7 @@ export function UsersManagementClient() {
         sortBy: "createdAt",
         sortOrder: "desc",
       });
-      if (search.trim()) params.set("search", search.trim());
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
       if (roleFilter !== "ALL") params.set("role", roleFilter);
       if (statusFilter !== "ALL") params.set("status", statusFilter);
 
@@ -93,7 +113,14 @@ export function UsersManagementClient() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, roleFilter, statusFilter]);
+  }, [page, debouncedSearch, roleFilter, statusFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     fetchUsers();
@@ -214,33 +241,33 @@ export function UsersManagementClient() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
+              <DotsThree className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuLabel>Ações Administrativas</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => handleEditUser(u)}>
-              <Edit3 className="mr-2 h-4 w-4" />
+              <PencilSimple className="mr-2 h-4 w-4" />
               Editar Dados
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleOpenPermissions(u)}>
-              <ShieldAlert className="mr-2 h-4 w-4 text-amber-500" />
+              <ShieldWarning className="mr-2 h-4 w-4 text-amber-500" />
               Permissões Individuais
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleOpenPassword(u)}>
-              <KeyRound className="mr-2 h-4 w-4 text-blue-500" />
+              <Key className="mr-2 h-4 w-4 text-blue-500" />
               Alterar Senha
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => handleToggleStatus(u)}>
               {u.isActive ? (
                 <>
-                  <UserX className="mr-2 h-4 w-4 text-orange-500" />
+                  <UserMinus className="mr-2 h-4 w-4 text-orange-500" />
                   Desativar Acesso
                 </>
               ) : (
                 <>
-                  <UserCheck className="mr-2 h-4 w-4 text-emerald-500" />
+                  <UserCircleCheck className="mr-2 h-4 w-4 text-emerald-500" />
                   Reativar Acesso
                 </>
               )}
@@ -250,7 +277,7 @@ export function UsersManagementClient() {
               className="text-red-600 focus:text-red-600"
               onClick={() => setConfirmDeleteUser(u)}
             >
-              <Trash2 className="mr-2 h-4 w-4" />
+              <Trash className="mr-2 h-4 w-4" />
               Excluir Usuário
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -260,27 +287,34 @@ export function UsersManagementClient() {
   ];
 
   return (
-    <>
-      <PageHeader
-        title="Gestão de Usuários"
-        breadcrumb={["Início", "Usuários"]}
-        description="Administração de técnicos, administradores, permissões RBAC e controle de acesso corporativo da CG Construções."
-      >
-        <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
-        <Button size="sm" onClick={handleCreateUser}>
-          <UserPlus className="h-4 w-4 mr-1.5" />
-          Novo Usuário
-        </Button>
-      </PageHeader>
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6"
+    >
+      <motion.div variants={itemVariants}>
+        <PageHeader
+          title="Gestão de Usuários"
+          breadcrumb={["Início", "Usuários"]}
+          description="Administração de técnicos, administradores, permissões RBAC e controle de acesso corporativo da CG Construções."
+        >
+          <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading} suppressHydrationWarning>
+            <ArrowsClockwise className={`h-4 w-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+          <Button size="sm" onClick={handleCreateUser}>
+            <UserPlus className="h-4 w-4 mr-1.5" />
+            Novo Usuário
+          </Button>
+        </PageHeader>
+      </motion.div>
 
       <div className="mt-6 space-y-4">
         {/* Barra de Filtros */}
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <motion.div variants={itemVariants} className="flex flex-col gap-3 glass-card rounded-[2rem] p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <MagnifyingGlass className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Pesquisar por nome, e-mail ou setor..."
               className="pl-9"
@@ -320,12 +354,13 @@ export function UsersManagementClient() {
               <option value="INACTIVE">Inativos</option>
             </select>
           </div>
-        </div>
+        </motion.div>
 
-        <SectionCard
-          title={`Lista de Usuários e Técnicos (${totalRecords})`}
-          description="Controle granular com sobreposição de permissões individuais por usuário."
-        >
+        <motion.div variants={itemVariants} className="glass-card rounded-[2rem] p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-foreground">Lista de Usuários e Técnicos ({totalRecords})</h2>
+            <p className="text-sm text-muted-foreground">Controle granular com sobreposição de permissões individuais por usuário.</p>
+          </div>
           <DataTable
             columns={columns}
             data={users}
@@ -360,7 +395,7 @@ export function UsersManagementClient() {
               </div>
             </div>
           )}
-        </SectionCard>
+        </motion.div>
       </div>
 
       {/* Modais */}
@@ -397,6 +432,6 @@ export function UsersManagementClient() {
         onConfirm={handleDeleteUser}
         variant="destructive"
       />
-    </>
+    </motion.div>
   );
 }
