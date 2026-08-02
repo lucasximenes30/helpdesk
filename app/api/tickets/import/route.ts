@@ -1,26 +1,28 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
+import os from "os";
+import path from "path";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/services/rbac/rbac.service";
 import { prisma } from "@/lib/prisma";
-import * as xlsx from "xlsx";
 import Papa from "papaparse";
-import { createTicket } from "@/services/ticket/create-ticket.service";
 import { processBulkImport, BulkTicketInput } from "@/services/import/bulk-import.service";
 
 // Função para converter HH:MM:SS ou decimais do Excel para Date
 function excelTimeToString(val: any): string | null {
   if (!val) return null;
   if (typeof val === "string") {
-    // Tentar ler HH:mm
-    if (val.includes(":")) {
-      const parts = val.split(":");
-      return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+    const clean = val.trim();
+    if (!clean) return null;
+    if (clean.includes(":")) {
+      const parts = clean.split(":");
+      const hours = (parts[0] || "00").padStart(2, '0');
+      const minutes = (parts[1] || "00").padStart(2, '0');
+      return `${hours}:${minutes}`;
     }
   }
   if (typeof val === "number") {
-    // O excel guarda hora como fração do dia
     let totalSeconds = Math.round(val * 86400);
     const hours = Math.floor(totalSeconds / 3600);
     totalSeconds %= 3600;
@@ -32,27 +34,34 @@ function excelTimeToString(val: any): string | null {
 
 function parseExcelDate(val: any): string | null {
   if (!val) return null;
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    return val.toISOString().split("T")[0];
+  }
   if (typeof val === "number") {
     // Excel base date is Dec 30 1899
     const d = new Date(Math.round((val - 25569) * 86400 * 1000));
-    return d.toISOString().split("T")[0];
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split("T")[0];
+    }
   }
   if (typeof val === "string") {
+    const cleanVal = val.trim();
+    if (!cleanVal) return null;
     // 27/07/2026 -> 2026-07-27
-    const parts = val.split("/");
+    const parts = cleanVal.split("/");
     if (parts.length === 3) {
       return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
     }
-    return val;
+    return cleanVal;
   }
   return null;
 }
 
 function mapStatus(status: string): any {
   const s = status.toLowerCase().trim();
-  if (s.includes("concluí") || s.includes("resolvido")) return "RESOLVIDO";
-  if (s.includes("andamento") || s.includes("andamento")) return "EM_ANDAMENTO";
-  if (s.includes("aguardando") || s.includes("esperando")) return "AGUARDANDO_USUARIO";
+  if (s.includes("concluí") || s.includes("resolvido") || s.includes("fechado")) return "RESOLVIDO";
+  if (s.includes("andamento") || s.includes("iniciado")) return "EM_ANDAMENTO";
+  if (s.includes("aguardando") || s.includes("esperando") || s.includes("pendente")) return "AGUARDANDO_USUARIO";
   if (s.includes("cancelado")) return "CANCELADO";
   return "ABERTO"; // Default
 }
@@ -61,14 +70,15 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     // PARA DEBUG LOCAL:
-    const mockSession = session || { id: "bf211e39-52ba-4216-aed9-3c7f99fa58c4", name: "Hudson Eduardo", permissions: ["manage_tickets"] };
+    const mockSession = session || { id: "bf211e39-52ba-4216-aed9-3c7f99fa58c4", name: "Hudson Eduardo", role: "ADMIN" };
     
     if (!mockSession?.id) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
-    if (!hasPermission(mockSession.permissions, "manage_tickets")) {
-      return NextResponse.json({ error: "Acesso negado: chamados.create" }, { status: 403 });
+    const canCreate = await hasPermission(mockSession.id, "chamados.create");
+    if (!canCreate) {
+      return NextResponse.json({ error: "Acesso negado: permissão 'chamados.create' requerida." }, { status: 403 });
     }
 
     const formData = await request.formData();
@@ -78,7 +88,12 @@ export async function POST(request: NextRequest) {
     }
 
     const fileText = await file.text();
-    fs.writeFileSync('/tmp/last-upload.csv', fileText);
+    try {
+      const tmpDir = os.tmpdir();
+      fs.writeFileSync(path.join(tmpDir, 'last-upload.csv'), fileText);
+    } catch (e) {
+      console.warn("Não foi possível salvar log de upload no tmpdir:", e);
+    }
 
     const parseResult = Papa.parse(fileText, {
       header: false,
@@ -97,10 +112,10 @@ export async function POST(request: NextRequest) {
     let headerRowIndex = 0;
     if (rawData && rawData.length > 0) {
       for (let i = 0; i < Math.min(5, rawData.length); i++) {
-          if (rawData[i] && Array.isArray(rawData[i]) && rawData[i].some((cell: any) => typeof cell === "string" && cell.toLowerCase().includes("solicitante"))) {
-              headerRowIndex = i;
-              break;
-          }
+        if (rawData[i] && Array.isArray(rawData[i]) && rawData[i].some((cell: any) => typeof cell === "string" && cell.toLowerCase().includes("solicitante"))) {
+          headerRowIndex = i;
+          break;
+        }
       }
     }
 
@@ -117,30 +132,41 @@ export async function POST(request: NextRequest) {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      if (!row || row.length === 0 || !row.some(Boolean)) continue; // Linha vazia
+      if (!row || row.length === 0 || !row.some((cell: any) => Boolean(String(cell || "").trim()))) continue; // Linha vazia
 
-      const solicitanteNome = String(getCol(row, ["solicitante", "cliente", "nome"]) || "Usuário Não Informado").trim();
-      const setorNome = String(getCol(row, ["setor", "obra", "departamento"]) || "Geral").trim();
+      const rawSolicitante = getCol(row, ["solicitante", "cliente", "nome"]);
+      const solicitanteNome = rawSolicitante && String(rawSolicitante).trim() ? String(rawSolicitante).trim() : "Usuário Não Informado";
+
+      const rawSetor = getCol(row, ["setor", "obra", "departamento"]);
+      const setorNome = rawSetor && String(rawSetor).trim() ? String(rawSetor).trim() : "Geral";
+
       const rawTecnico = getCol(row, ["técnico", "tecnico", "responsável", "responsavel"]);
-      const tecnicoNome = rawTecnico ? String(rawTecnico).trim() : null;
+      const tecnicoNome = rawTecnico && String(rawTecnico).trim() ? String(rawTecnico).trim() : null;
       
       const rawDate = getCol(row, ["data", "abertura"]);
       const dateStr = parseExcelDate(rawDate);
-      const dataChamado = dateStr ? new Date(dateStr) : null;
+      const dataChamado = dateStr ? new Date(dateStr) : new Date();
       
       const horaInicio = excelTimeToString(getCol(row, ["hora início", "hora inicio", "início", "abertura"]));
-      const problema = String(getCol(row, ["problema", "título", "assunto"]) || "Problema não informado").trim();
+      const rawProblema = getCol(row, ["problema", "título", "assunto"]);
+      const problema = rawProblema && String(rawProblema).trim() ? String(rawProblema).trim() : "Problema não informado";
+
       const rawDescricao = getCol(row, ["descrição", "detalhes"]);
-      const descricao = rawDescricao ? String(rawDescricao).trim() : undefined;
-      const servicoNome = String(getCol(row, ["serviço", "servico", "categoria"]) || "Geral").trim();
-      const statusRaw = String(getCol(row, ["status", "situação"]) || "Aberto").trim();
+      const descricao = rawDescricao && String(rawDescricao).trim() ? String(rawDescricao).trim() : undefined;
+
+      const rawServico = getCol(row, ["serviço", "servico", "categoria"]);
+      const servicoNome = rawServico && String(rawServico).trim() ? String(rawServico).trim() : "Geral";
+
+      const rawStatus = getCol(row, ["status", "situação"]);
+      const statusRaw = rawStatus && String(rawStatus).trim() ? String(rawStatus).trim() : "Aberto";
+
       const encerramento = excelTimeToString(getCol(row, ["encerramento", "hora fim", "fim", "fechamento"]));
 
       parsedRows.push({
         solicitante: solicitanteNome,
         setor: setorNome,
         tecnico: tecnicoNome,
-        dataChamado,
+        dataChamado: !isNaN(dataChamado.getTime()) ? dataChamado : new Date(),
         horaInicio,
         encerramento,
         problema,
@@ -153,10 +179,15 @@ export async function POST(request: NextRequest) {
     console.log("[DEBUG IMPORT] Headers detectados:", headers);
     console.log("[DEBUG IMPORT] Exemplo do primeiro parse:", parsedRows[0]);
     
-    fs.writeFileSync('/tmp/parsedRows.json', JSON.stringify(parsedRows, null, 2));
+    try {
+      const tmpDir = os.tmpdir();
+      fs.writeFileSync(path.join(tmpDir, 'parsedRows.json'), JSON.stringify(parsedRows, null, 2));
+    } catch (e) {
+      console.warn("Não foi possível salvar parsedRows.json no tmpdir:", e);
+    }
 
     if (parsedRows.length === 0) {
-       return NextResponse.json({ error: "Nenhum chamado válido encontrado na planilha." }, { status: 400 });
+      return NextResponse.json({ error: "Nenhum chamado válido encontrado na planilha." }, { status: 400 });
     }
 
     // Processamento Bulk de Alta Performance
