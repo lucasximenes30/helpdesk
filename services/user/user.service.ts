@@ -11,6 +11,7 @@ export interface UserListParams {
   status?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  includeInactive?: boolean;
 }
 
 export async function getUsersPaginated(params: UserListParams) {
@@ -18,9 +19,10 @@ export async function getUsersPaginated(params: UserListParams) {
   const limit = Math.min(100, Math.max(1, params.limit || 10));
   const skip = (page - 1) * limit;
 
-  const where: Prisma.UserWhereInput = {
-    deletedAt: null, // soft deleted omitidos por padrão
-  };
+  const where: Prisma.UserWhereInput = {};
+  if (!params.includeInactive) {
+    where.deletedAt = null; // soft deleted omitidos por padrão
+  }
 
   if (params.search && params.search.trim() !== "") {
     where.OR = [

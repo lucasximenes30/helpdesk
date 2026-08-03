@@ -55,7 +55,7 @@ export async function getTicketById(id: string) {
  */
 export async function getTicketsPaginated(options: TicketFilterOptions) {
   const page = Math.max(1, options.page || 1);
-  const limit = Math.max(1, Math.min(100, options.limit || 10));
+  const limit = Math.max(1, Math.min(10000, options.limit || 10));
   const skip = (page - 1) * limit;
 
   const where: any = {

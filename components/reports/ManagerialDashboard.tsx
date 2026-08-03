@@ -85,17 +85,43 @@ export function ManagerialDashboard({ tickets, onClose }: ManagerialDashboardPro
     if (!dashboardRef.current) return;
     setIsExporting(true);
     try {
-      // Use html-to-image to capture the visual dashboard, supporting modern CSS colors like oklch/lab
-      const imgData = await toJpeg(dashboardRef.current, { quality: 0.9, backgroundColor: "#ffffff", pixelRatio: 2 });
+      const origWidth = 1123;
+      const origHeight = dashboardRef.current.scrollHeight || 794;
+
+      // Use html-to-image com largura e altura explícitas e sem margens para evitar deslocamento/corte em containeres com scroll
+      const imgData = await toJpeg(dashboardRef.current, {
+        quality: 0.95,
+        backgroundColor: "#ffffff",
+        pixelRatio: 2,
+        width: origWidth,
+        height: origHeight,
+        style: {
+          margin: "0",
+          padding: "32px",
+          transform: "none",
+          width: `${origWidth}px`,
+          height: `${origHeight}px`,
+          position: "static",
+          overflow: "visible",
+          maxWidth: "none",
+        },
+      });
       
       const pdf = new jsPDF("landscape", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
       
-      const origWidth = dashboardRef.current.offsetWidth;
-      const origHeight = dashboardRef.current.offsetHeight;
-      const pdfHeight = (origHeight * pdfWidth) / origWidth;
+      // Ajuste proporcional para caber exatamente em A4 Paisagem sem cortes nem distorção
+      const ratioWidth = pdfWidth / origWidth;
+      const ratioHeight = pdfHeight / origHeight;
+      const ratio = Math.min(ratioWidth, ratioHeight);
+      
+      const imgWidth = origWidth * ratio;
+      const imgHeight = origHeight * ratio;
+      const x = (pdfWidth - imgWidth) / 2;
+      const y = (pdfHeight - imgHeight) / 2;
 
-      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
       pdf.save(`relatorio-gerencial-${Date.now()}.pdf`);
     } catch (e) {
       console.error(e);
@@ -124,23 +150,23 @@ export function ManagerialDashboard({ tickets, onClose }: ManagerialDashboardPro
         </div>
       </div>
 
-      {/* Conteúdo Central (A4 Landscape aspect ratio approximation) */}
-      <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-900 p-8">
+      {/* Conteúdo Central (proporções exatas de A4 Landscape 297x210 mm) */}
+      <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-900 p-8 flex justify-center items-start">
         <div
           ref={dashboardRef}
-          className="max-w-[1400px] mx-auto bg-white p-10 shadow-sm border border-slate-200"
-          style={{ width: "1200px", minHeight: "800px" }}
+          className="bg-white p-8 shadow-sm border border-slate-200 shrink-0"
+          style={{ width: "1123px", minHeight: "794px", margin: 0 }}
         >
-          <div className="mb-8 border-b pb-4">
+          <div className="mb-6 border-b pb-3">
             <h1 className="text-3xl font-serif text-slate-800">Dashboard Gerencial de Chamados</h1>
             <p className="text-slate-500 mt-1">Gerado em: {new Date().toLocaleString("pt-BR")}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-2 gap-6">
             {/* 1. Chamados por Setor/Obra */}
-            <div className="border border-slate-200 p-6 rounded-lg bg-white shadow-sm">
-              <h3 className="text-xl font-serif text-slate-700 mb-6 border-b pb-2">Número de Chamados por Setor/Obra</h3>
-              <div className="h-[300px] w-full">
+            <div className="border border-slate-200 p-5 rounded-lg bg-white shadow-sm">
+              <h3 className="text-lg font-serif text-slate-700 mb-4 border-b pb-2">Número de Chamados por Setor/Obra</h3>
+              <div className="h-[220px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={ticketsBySector} margin={{ top: 20, right: 10, left: -20, bottom: 40 }}>
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#475569" }} interval={0} angle={-45} textAnchor="end" />
@@ -154,9 +180,9 @@ export function ManagerialDashboard({ tickets, onClose }: ManagerialDashboardPro
             </div>
 
             {/* 2. Chamados por Técnico */}
-            <div className="border border-slate-200 p-6 rounded-lg bg-white shadow-sm">
-              <h3 className="text-xl font-serif text-slate-700 mb-6 border-b pb-2">Número de Chamados por Técnico</h3>
-              <div className="h-[300px] w-full">
+            <div className="border border-slate-200 p-5 rounded-lg bg-white shadow-sm">
+              <h3 className="text-lg font-serif text-slate-700 mb-4 border-b pb-2">Número de Chamados por Técnico</h3>
+              <div className="h-[220px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={ticketsByTech} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: "#475569", fontWeight: 600 }} />
@@ -170,9 +196,9 @@ export function ManagerialDashboard({ tickets, onClose }: ManagerialDashboardPro
             </div>
 
             {/* 3. Chamados por Serviço (Horizontal) */}
-            <div className="border border-slate-200 p-6 rounded-lg bg-white shadow-sm">
-              <h3 className="text-xl font-serif text-slate-700 mb-6 border-b pb-2">Número de Chamados por Serviço</h3>
-              <div className="h-[350px] w-full">
+            <div className="border border-slate-200 p-5 rounded-lg bg-white shadow-sm">
+              <h3 className="text-lg font-serif text-slate-700 mb-4 border-b pb-2">Número de Chamados por Serviço</h3>
+              <div className="h-[230px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={ticketsByService} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
                     <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#475569" }} />

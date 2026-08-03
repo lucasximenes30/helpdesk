@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || undefined;
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = (searchParams.get("sortOrder") as "asc" | "desc") || "desc";
+    const includeInactive = searchParams.get("includeInactive") === "true";
 
     const data = await getUsersPaginated({
       page,
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
       status,
       sortBy,
       sortOrder,
+      includeInactive,
     });
 
     return NextResponse.json(data, { status: 200 });
