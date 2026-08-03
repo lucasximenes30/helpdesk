@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
-import { SectionCard } from "@/components/common/SectionCard";
 import { DataTable, Column } from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,16 +20,13 @@ import {
   MagnifyingGlass,
   DotsThree,
   PencilSimple,
-  Key,
   UserCircleCheck,
   UserMinus,
   Trash,
   ArrowsClockwise,
 } from "@phosphor-icons/react";
-import { UserModal } from "../users/UserModal";
-import { UserPasswordModal } from "../users/UserPasswordModal";
+import { RequesterModal, RequesterRow } from "./RequesterModal";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { UserRow } from "../users/UsersManagementClient";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -51,7 +47,7 @@ const itemVariants: Variants = {
 };
 
 export function RequestersManagementClient() {
-  const [users, setUsers] = useState<UserRow[]>([]);
+  const [requesters, setRequesters] = useState<RequesterRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtros, pesquisa e paginação
@@ -62,32 +58,28 @@ export function RequestersManagementClient() {
   const [totalRecords, setTotalRecords] = useState(0);
 
   // Controle de Modais
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState<UserRow | null>(null);
+  const [isRequesterModalOpen, setIsRequesterModalOpen] = useState(false);
+  const [requesterToEdit, setRequesterToEdit] = useState<RequesterRow | null>(null);
 
-  const [isPassModalOpen, setIsPassModalOpen] = useState(false);
-  const [passUser, setPassUser] = useState<UserRow | null>(null);
-
-  const [confirmDeleteUser, setConfirmDeleteUser] = useState<UserRow | null>(null);
+  const [confirmDeleteRequester, setConfirmDeleteRequester] = useState<RequesterRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchRequesters = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: String(page),
         limit: "10",
-        sortBy: "createdAt",
-        sortOrder: "desc",
-        role: "SOLICITANTE" // Filtro fixo para solicitantes
+        sortBy: "name",
+        sortOrder: "asc",
       });
       if (search.trim()) params.set("search", search.trim());
       if (statusFilter !== "ALL") params.set("status", statusFilter);
 
-      const res = await fetch(`/api/users?${params.toString()}`);
+      const res = await fetch(`/api/requesters?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setUsers(data.users || []);
+        setRequesters(data.requesters || []);
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalRecords(data.pagination?.total || 0);
       }
@@ -99,34 +91,34 @@ export function RequestersManagementClient() {
   }, [page, search, statusFilter]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    fetchRequesters();
+  }, [fetchRequesters]);
 
   // Ações rápidas
-  const handleToggleStatus = async (u: UserRow) => {
+  const handleToggleStatus = async (u: RequesterRow) => {
     try {
-      const res = await fetch(`/api/users/${u.id}/status`, {
+      const res = await fetch(`/api/requesters/${u.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !u.isActive }),
       });
       if (!res.ok) throw new Error("Erro ao alterar status");
-      fetchUsers();
+      fetchRequesters();
     } catch (err: any) {
       alert(err.message || "Erro ao alterar status");
     }
   };
 
   const handleDeleteConfirm = async () => {
-    if (!confirmDeleteUser) return;
+    if (!confirmDeleteRequester) return;
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/users/${confirmDeleteUser.id}`, {
+      const res = await fetch(`/api/requesters/${confirmDeleteRequester.id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Erro ao excluir solicitante");
-      setConfirmDeleteUser(null);
-      fetchUsers();
+      setConfirmDeleteRequester(null);
+      fetchRequesters();
     } catch (err: any) {
       alert(err.message || "Erro ao excluir solicitante");
     } finally {
@@ -134,7 +126,7 @@ export function RequestersManagementClient() {
     }
   };
 
-  const columns: Column<UserRow>[] = [
+  const columns: Column<RequesterRow>[] = [
     {
       key: "name",
       label: "Solicitante",
@@ -146,11 +138,19 @@ export function RequestersManagementClient() {
       ),
     },
     {
-      key: "sector",
+      key: "company",
       label: "Empresa / Setor",
       render: (u) => (
         <span className="text-sm">
-          {u.sector?.name || <span className="text-slate-400 italic">Não vinculado</span>}
+          {u.company || u.department ? (
+            <span>
+              {u.company}
+              {u.company && u.department ? " / " : ""}
+              {u.department}
+            </span>
+          ) : (
+            <span className="text-slate-400 italic">Não vinculado</span>
+          )}
         </span>
       ),
     },
@@ -186,19 +186,11 @@ export function RequestersManagementClient() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
-                  setUserToEdit(u);
-                  setIsUserModalOpen(true);
+                  setRequesterToEdit(u);
+                  setIsRequesterModalOpen(true);
                 }}
               >
                 <PencilSimple className="mr-2 h-4 w-4" /> Editar Cadastro
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setPassUser(u);
-                  setIsPassModalOpen(true);
-                }}
-              >
-                <Key className="mr-2 h-4 w-4" /> Redefinir Senha
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handleToggleStatus(u)}>
@@ -215,7 +207,7 @@ export function RequestersManagementClient() {
                 )}
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => setConfirmDeleteUser(u)}
+                onClick={() => setConfirmDeleteRequester(u)}
                 className="text-red-600 focus:text-red-600 focus:bg-red-50"
               >
                 <Trash className="mr-2 h-4 w-4" /> Excluir Solicitante
@@ -242,8 +234,8 @@ export function RequestersManagementClient() {
         >
           <Button
             onClick={() => {
-              setUserToEdit(null);
-              setIsUserModalOpen(true);
+              setRequesterToEdit(null);
+              setIsRequesterModalOpen(true);
             }}
           >
             <UserPlus className="h-4 w-4 mr-2" />
@@ -262,7 +254,7 @@ export function RequestersManagementClient() {
             <div className="relative flex-1">
               <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome ou e-mail..."
+                placeholder="Buscar por nome, e-mail ou setor..."
                 className="pl-9 h-10 bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30 transition-all rounded-lg"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -278,7 +270,7 @@ export function RequestersManagementClient() {
                 <option value="ACTIVE">Ativos</option>
                 <option value="INACTIVE">Inativos</option>
               </select>
-              <Button variant="outline" size="icon" onClick={() => fetchUsers()}>
+              <Button variant="outline" size="icon" onClick={() => fetchRequesters()}>
                 <ArrowsClockwise className="h-4 w-4 text-muted-foreground" />
               </Button>
             </div>
@@ -286,7 +278,7 @@ export function RequestersManagementClient() {
 
           <DataTable
             columns={columns}
-            data={users}
+            data={requesters}
             isLoading={loading}
             emptyTitle="Nenhum solicitante encontrado"
             emptyDescription="Tente ajustar os filtros ou adicione um novo solicitante."
@@ -321,27 +313,20 @@ export function RequestersManagementClient() {
         </motion.div>
       </div>
 
-      <UserModal
-        isOpen={isUserModalOpen}
-        onClose={() => setIsUserModalOpen(false)}
-        onSuccess={fetchUsers}
-        userToEdit={userToEdit}
-      />
-
-      <UserPasswordModal
-        isOpen={isPassModalOpen}
-        onClose={() => setIsPassModalOpen(false)}
-        userId={passUser?.id || null}
-        userName={passUser?.name || ""}
+      <RequesterModal
+        isOpen={isRequesterModalOpen}
+        onClose={() => setIsRequesterModalOpen(false)}
+        onSuccess={fetchRequesters}
+        requesterToEdit={requesterToEdit}
       />
 
       <ConfirmDialog
-        open={!!confirmDeleteUser}
+        open={!!confirmDeleteRequester}
         onOpenChange={(open) => {
-          if (!open) setConfirmDeleteUser(null);
+          if (!open) setConfirmDeleteRequester(null);
         }}
         title="Excluir Solicitante"
-        description={`Tem certeza que deseja excluir o solicitante ${confirmDeleteUser?.name}? Esta ação o impedirá de acessar o sistema e abrir chamados.`}
+        description={`Tem certeza que deseja excluir o solicitante ${confirmDeleteRequester?.name}? Esta ação o impedirá de abrir novos chamados no sistema.`}
         confirmLabel="Sim, Excluir"
         cancelLabel="Cancelar"
         onConfirm={handleDeleteConfirm}
@@ -351,3 +336,4 @@ export function RequestersManagementClient() {
     </motion.div>
   );
 }
+

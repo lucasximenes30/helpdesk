@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export interface RequesterSuggestion {
   id: string;
@@ -183,3 +184,140 @@ export async function getRequesterHistory(requesterId: string): Promise<Requeste
     recentTickets,
   };
 }
+
+export interface RequesterListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export async function getRequestersPaginated(params: RequesterListParams) {
+  const page = Math.max(1, params.page || 1);
+  const limit = Math.min(100, Math.max(1, params.limit || 10));
+  const skip = (page - 1) * limit;
+
+  const where: Prisma.RequesterWhereInput = {
+    deletedAt: null,
+  };
+
+  if (params.search && params.search.trim() !== "") {
+    const q = params.search.trim();
+    where.OR = [
+      { name: { contains: q, mode: "insensitive" } },
+      { email: { contains: q, mode: "insensitive" } },
+      { department: { contains: q, mode: "insensitive" } },
+      { company: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  if (params.status && params.status !== "ALL") {
+    where.isActive = params.status === "ACTIVE";
+  }
+
+  const orderBy: Prisma.RequesterOrderByWithRelationInput = {};
+  const validSortFields = ["name", "email", "company", "department", "isActive", "createdAt"];
+  const sortField = validSortFields.includes(params.sortBy || "") ? params.sortBy! : "name";
+  orderBy[sortField as keyof Prisma.RequesterOrderByWithRelationInput] = params.sortOrder || "asc";
+
+  const [requesters, total] = await Promise.all([
+    prisma.requester.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy,
+    }),
+    prisma.requester.count({ where }),
+  ]);
+
+  return {
+    requesters,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
+export async function createRequester(data: {
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  department?: string;
+  isActive?: boolean;
+}) {
+  const cleanName = data.name.trim();
+  const generatedEmail =
+    data.email?.trim() ||
+    `${cleanName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "")}@cgconstrucoes.local`;
+
+  const created = await prisma.requester.create({
+    data: {
+      name: cleanName,
+      email: generatedEmail,
+      phone: data.phone || null,
+      company: data.company || "CG Construções",
+      department: data.department || null,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+    },
+  });
+
+  return created;
+}
+
+export async function updateRequester(
+  id: string,
+  data: {
+    name?: string;
+    email?: string;
+    phone?: string | null;
+    company?: string | null;
+    department?: string | null;
+    isActive?: boolean;
+  }
+) {
+  const updated = await prisma.requester.update({
+    where: { id },
+    data: {
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      company: data.company,
+      department: data.department,
+      isActive: data.isActive,
+    },
+  });
+
+  return updated;
+}
+
+export async function deleteRequester(id: string) {
+  const deleted = await prisma.requester.update({
+    where: { id },
+    data: {
+      deletedAt: new Date(),
+      isActive: false,
+    },
+  });
+
+  return { success: true, id: deleted.id };
+}
+
+export async function toggleRequesterStatus(id: string, isActive: boolean) {
+  const updated = await prisma.requester.update({
+    where: { id },
+    data: { isActive },
+  });
+
+  return updated;
+}
+

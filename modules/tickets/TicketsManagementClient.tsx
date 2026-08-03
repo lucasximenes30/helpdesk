@@ -38,7 +38,7 @@ import { TicketModal } from "./TicketModal";
 import { AssignTechnicianModal, ChangeStatusModal } from "./QuickActionModals";
 import { MonthYearSelector } from "@/components/common/MonthYearSelector";
 import { ManagerialDashboard } from "@/components/reports/ManagerialDashboard";
-import { ImportExcelModal } from "./ImportExcelModal";
+import { CsvImportWizard } from "../import/CsvImportWizard";
 
 export interface TicketRow {
   id: string;
@@ -107,6 +107,9 @@ export function TicketsManagementClient() {
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [openCount, setOpenCount] = useState(0);
+  const [resolvedCount, setResolvedCount] = useState(0);
+  const [waitingCount, setWaitingCount] = useState(0);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
@@ -122,10 +125,6 @@ export function TicketsManagementClient() {
 
   const [managerialDashboardOpen, setManagerialDashboardOpen] = useState(false);
   const [managerialDashboardTickets, setManagerialDashboardTickets] = useState<TicketRow[]>([]);
-
-  const totalInAttendance = tickets.filter((t) => t.status === "ABERTO").length;
-  const totalCompleted = tickets.filter((t) => t.status === "RESOLVIDO").length;
-  const totalWaiting = tickets.filter((t) => t.status === "AGUARDANDO_USUARIO").length;
 
   const loadAuxiliaryData = useCallback(async () => {
     try {
@@ -180,6 +179,9 @@ export function TicketsManagementClient() {
         setTickets(body.data || []);
         setTotalPages(body.meta?.totalPages || 1);
         setTotalItems(body.meta?.total || 0);
+        setOpenCount(body.meta?.openCount || 0);
+        setResolvedCount(body.meta?.resolvedCount || 0);
+        setWaitingCount(body.meta?.waitingCount || 0);
       }
     } catch (err) {
       console.error("Erro ao buscar chamados:", err);
@@ -561,7 +563,10 @@ export function TicketsManagementClient() {
       </motion.div>
 
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift">
+        <div 
+          onClick={() => { setStatusFilter("ALL"); setPage(1); }}
+          className={`glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift cursor-pointer transition-all ${statusFilter === "ALL" ? "ring-2 ring-primary shadow-lg" : ""}`}
+        >
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
             <FileText weight="duotone" className="w-24 h-24 text-foreground" />
           </div>
@@ -574,7 +579,10 @@ export function TicketsManagementClient() {
           <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{totalItems}</div>
         </div>
 
-        <div className="glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift">
+        <div 
+          onClick={() => { setStatusFilter("ABERTO"); setPage(1); }}
+          className={`glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift cursor-pointer transition-all ${statusFilter === "ABERTO" ? "ring-2 ring-warning shadow-lg" : ""}`}
+        >
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
             <Clock weight="duotone" className="w-24 h-24 text-warning" />
           </div>
@@ -584,10 +592,13 @@ export function TicketsManagementClient() {
             </div>
             <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Em Aberto</span>
           </div>
-          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{totalInAttendance}</div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{openCount}</div>
         </div>
 
-        <div className="glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift">
+        <div 
+          onClick={() => { setStatusFilter("RESOLVIDO"); setPage(1); }}
+          className={`glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift cursor-pointer transition-all ${statusFilter === "RESOLVIDO" ? "ring-2 ring-success shadow-lg" : ""}`}
+        >
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
             <CheckCircle weight="duotone" className="w-24 h-24 text-success" />
           </div>
@@ -597,10 +608,13 @@ export function TicketsManagementClient() {
             </div>
             <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Resolvidos</span>
           </div>
-          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{totalCompleted}</div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{resolvedCount}</div>
         </div>
 
-        <div className="glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift">
+        <div 
+          onClick={() => { setStatusFilter("AGUARDANDO_USUARIO"); setPage(1); }}
+          className={`glass-card rounded-[2rem] p-6 h-full relative overflow-hidden group hover-lift cursor-pointer transition-all ${statusFilter === "AGUARDANDO_USUARIO" ? "ring-2 ring-blue-500 shadow-lg" : ""}`}
+        >
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
             <WarningCircle weight="duotone" className="w-24 h-24 text-blue-500" />
           </div>
@@ -610,7 +624,7 @@ export function TicketsManagementClient() {
             </div>
             <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Aguardando</span>
           </div>
-          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{totalWaiting}</div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{waitingCount}</div>
         </div>
       </motion.div>
 
@@ -628,8 +642,8 @@ export function TicketsManagementClient() {
               className="pl-9 h-10 bg-background/50 border-border/80 focus-visible:ring-1 focus-visible:ring-primary/30 transition-all rounded-lg"
             />
           </div>
-          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Ref:</span>
+          <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Período:</span>
             <div className="min-w-[140px]">
               <MonthYearSelector
                 value={monthYear || "ALL"}
@@ -788,12 +802,12 @@ export function TicketsManagementClient() {
         onConfirm={handleDeleteConfirm}
       />
 
-      <ImportExcelModal
+      <CsvImportWizard
         open={importModalOpen}
-        onOpenChange={setImportModalOpen}
+        onClose={() => setImportModalOpen(false)}
         onImported={() => {
-           setImportModalOpen(false);
-           fetchTickets();
+          setImportModalOpen(false);
+          fetchTickets();
         }}
       />
       {managerialDashboardOpen && (

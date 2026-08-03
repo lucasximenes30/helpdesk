@@ -74,7 +74,9 @@ export function MonthYearSelector({
 
   const displayLabel = value === "ALL"
     ? "Ano Completo"
-    : formatMonthYear(value || getCurrentMonthYear());
+    : value
+    ? formatMonthYear(value)
+    : "Filtrar por Mês";
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -111,7 +113,7 @@ export function MonthYearSelector({
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 px-2 py-0.5 rounded-md hover:bg-muted/50 transition-colors"
+          className="flex items-center gap-2 px-2 py-0.5 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
         >
           <Calendar className="h-4 w-4 text-primary" />
           <span className="min-w-[120px] text-center">
@@ -131,7 +133,7 @@ export function MonthYearSelector({
       </div>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-64 max-h-72 overflow-y-auto bg-popover border border-border rounded-lg shadow-xl z-50 py-1 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute top-full left-0 mt-1 w-52 max-h-72 overflow-y-auto bg-popover border border-border rounded-lg shadow-xl z-[100] py-1 animate-in fade-in slide-in-from-top-2 duration-150">
           {includeAllYear && (
             <button
               type="button"

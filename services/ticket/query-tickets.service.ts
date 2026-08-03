@@ -68,11 +68,6 @@ export async function getTicketsPaginated(options: TicketFilterOptions) {
      if (user) {
          where.requester = { email: user.email };
      }
-  } else if (options.role === "TI" && options.userId) {
-     // Técnico vê chamados atribuídos a ele ou não atribuídos (Fila Geral)
-     where.AND = [
-         { OR: [{ technicianId: options.userId }, { technicianId: null }] }
-     ];
   }
 
   if (options.status && options.status !== "ALL") {
@@ -93,7 +88,7 @@ export async function getTicketsPaginated(options: TicketFilterOptions) {
   if (options.priority && options.priority !== "ALL") {
     where.priority = options.priority;
   }
-  if (options.monthYear) {
+  if (options.monthYear && options.monthYear !== "ALL") {
     where.ticketMonthYear = options.monthYear;
   } else if (options.startDate || options.endDate) {
     where.ticketDate = {};
@@ -136,8 +131,14 @@ export async function getTicketsPaginated(options: TicketFilterOptions) {
     orderBy = { service: { name: direction } };
   }
 
-  const [total, data] = await Promise.all([
+  const statusWhere = { ...where };
+  delete statusWhere.status;
+
+  const [total, openCount, resolvedCount, waitingCount, data] = await Promise.all([
     prisma.ticket.count({ where }),
+    prisma.ticket.count({ where: { ...statusWhere, status: "ABERTO" } }),
+    prisma.ticket.count({ where: { ...statusWhere, status: "RESOLVIDO" } }),
+    prisma.ticket.count({ where: { ...statusWhere, status: "AGUARDANDO_USUARIO" } }),
     prisma.ticket.findMany({
       where,
       orderBy,
@@ -157,6 +158,9 @@ export async function getTicketsPaginated(options: TicketFilterOptions) {
     data,
     meta: {
       total,
+      openCount,
+      resolvedCount,
+      waitingCount,
       page,
       limit,
       totalPages: Math.ceil(total / limit),

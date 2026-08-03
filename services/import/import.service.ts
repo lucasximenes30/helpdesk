@@ -144,14 +144,10 @@ function rowToCsvRow(fields: string[], colMap: Record<string, number>): CsvRow {
  * Validate if a row should be imported (not empty/header)
  */
 function isValidRow(row: CsvRow): boolean {
-  // Skip if no requester AND no service (completely empty row)
-  if (!row.solicitante && !row.servico) return false;
-  // Skip if no requester (decision: opção A)
-  if (!row.solicitante) return false;
-  // Skip if no service (decision: opção A)
-  if (!row.servico) return false;
   // Must have at least a date
   if (!row.data) return false;
+  // Must have at least one meaningful field (requester, service, problem, or description)
+  if (!row.solicitante && !row.servico && !row.problema && !row.descricao) return false;
   return true;
 }
 
@@ -430,10 +426,10 @@ export async function previewCsvImport(csvText: string): Promise<ImportPreviewRe
   const validRows = csvRows.filter(isValidRow);
   const skippedRows = csvRows.length - validRows.length;
 
-  // Collect unique entity names
-  const requesterNames = [...new Set(validRows.map((r) => r.solicitante.trim()).filter(Boolean))];
-  const sectorNames = [...new Set(validRows.map((r) => r.setor.trim()).filter(Boolean))];
-  const serviceNames = [...new Set(validRows.map((r) => r.servico.trim()).filter(Boolean))];
+  // Collect unique entity names (with fallbacks for empty fields)
+  const requesterNames = [...new Set(validRows.map((r) => r.solicitante.trim() || "Solicitante Não Informado").filter(Boolean))];
+  const sectorNames = [...new Set(validRows.map((r) => r.setor.trim() || "Geral").filter(Boolean))];
+  const serviceNames = [...new Set(validRows.map((r) => r.servico.trim() || "Dúvidas & Informações").filter(Boolean))];
   const technicianNames = [...new Set(validRows.map((r) => r.tecnico.trim()).filter(Boolean))];
 
   // Check which exist in DB
@@ -532,6 +528,31 @@ export async function executeCsvImport(
   const csvRows: CsvRow[] = dataRows.map((r) => rowToCsvRow(r, colMap));
   const validRows = csvRows.filter(isValidRow);
 
+  const requesterNames = [...new Set(validRows.map((r) => r.solicitante.trim() || "Solicitante Não Informado").filter(Boolean))];
+  const sectorNames = [...new Set(validRows.map((r) => r.setor.trim() || "Geral").filter(Boolean))];
+  const serviceNames = [...new Set(validRows.map((r) => r.servico.trim() || "Dúvidas & Informações").filter(Boolean))];
+  const technicianNames = [...new Set(validRows.map((r) => r.tecnico.trim()).filter(Boolean))];
+
+  // Find all unique months in the valid rows and clear existing tickets for those months
+  // to avoid duplicating tickets when re-importing a monthly spreadsheet
+  const monthsInCsv = new Set<string>();
+  for (const row of validRows) {
+    const dateObj = parseBrDate(row.data);
+    if (dateObj) {
+      monthsInCsv.add(getMonthYearFromDate(dateObj));
+    }
+  }
+
+  if (monthsInCsv.size > 0) {
+    await prisma.ticket.deleteMany({
+      where: {
+        ticketMonthYear: {
+          in: Array.from(monthsInCsv),
+        },
+      },
+    });
+  }
+
   const reqCounters = { new: 0, existing: 0 };
   const secCounters = { new: 0, existing: 0 };
   const srvCounters = { new: 0, existing: 0 };
@@ -561,9 +582,9 @@ export async function executeCsvImport(
 
     for (const row of batch) {
       try {
-        const requesterId = await resolveRequester(row.solicitante, reqCounters);
-        const sectorId = await resolveSector(row.setor, secCounters);
-        const serviceId = await resolveService(row.servico, srvCounters);
+        const requesterId = await resolveRequester(row.solicitante.trim() || "Solicitante Não Informado", reqCounters);
+        const sectorId = await resolveSector(row.setor.trim() || "Geral", secCounters);
+        const serviceId = await resolveService(row.servico.trim() || "Dúvidas & Informações", srvCounters);
 
         let technicianId: string | null = null;
         if (row.tecnico) {
@@ -680,13 +701,13 @@ export async function executeCsvImport(
     importedRows,
     skippedRows: csvRows.length - validRows.length,
     newRequesters: reqCounters.new,
-    existingRequesters: reqCounters.existing,
+    existingRequesters: Math.max(0, requesterNames.length - reqCounters.new),
     newSectors: secCounters.new,
-    existingSectors: secCounters.existing,
+    existingSectors: Math.max(0, sectorNames.length - secCounters.new),
     newServices: srvCounters.new,
-    existingServices: srvCounters.existing,
+    existingServices: Math.max(0, serviceNames.length - srvCounters.new),
     newTechnicians: techCounters.new,
-    existingTechnicians: techCounters.existing,
+    existingTechnicians: Math.max(0, technicianNames.length - techCounters.new),
     durationMs,
     errors,
   };

@@ -536,6 +536,7 @@ export async function getDashboardStats(
         percentage: totalTickets > 0 ? Math.round((d.count / totalTickets) * 100) : 0,
       };
     })
+    .filter((t) => t.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
@@ -547,6 +548,7 @@ export async function getDashboardStats(
       count: d.count,
       percentage: totalTickets > 0 ? Math.round((d.count / totalTickets) * 100) : 0,
     }))
+    .filter((s) => s.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
@@ -557,6 +559,7 @@ export async function getDashboardStats(
       count: d.count,
       percentage: totalTickets > 0 ? Math.round((d.count / totalTickets) * 100) : 0,
     }))
+    .filter((sec) => sec.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 

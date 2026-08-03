@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 interface CsvImportWizardProps {
   open: boolean;
   onClose: () => void;
+  onImported?: () => void;
 }
 
 type WizardStep = 1 | 2 | 3 | 4 | 5;
@@ -61,7 +62,7 @@ interface ImportResult {
   errors: string[];
 }
 
-export function CsvImportWizard({ open, onClose }: CsvImportWizardProps) {
+export function CsvImportWizard({ open, onClose, onImported }: CsvImportWizardProps) {
   const [step, setStep] = useState<WizardStep>(1);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
@@ -84,6 +85,9 @@ export function CsvImportWizard({ open, onClose }: CsvImportWizardProps) {
   }, []);
 
   const handleClose = () => {
+    if (result && result.success) {
+      onImported?.();
+    }
     reset();
     onClose();
   };
@@ -355,6 +359,7 @@ export function CsvImportWizard({ open, onClose }: CsvImportWizardProps) {
                 <div className="p-3 rounded-lg bg-muted/30 border border-border/60 text-center">
                   <p className="text-2xl font-bold text-amber-500">{preview.skippedRows}</p>
                   <p className="text-[11px] text-muted-foreground">Linhas ignoradas</p>
+                  <p className="text-[9px] text-muted-foreground/70">(vazias / sem dados)</p>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/30 border border-border/60 text-center">
                   <p className="text-2xl font-bold text-primary">{preview.detectedMonthYear}</p>
@@ -600,6 +605,7 @@ export function CsvImportWizard({ open, onClose }: CsvImportWizardProps) {
                 <div className="p-4 rounded-lg bg-muted/30 border border-border/60 text-center">
                   <p className="text-3xl font-bold text-amber-500">{result.skippedRows}</p>
                   <p className="text-xs text-muted-foreground mt-1">Linhas ignoradas</p>
+                  <p className="text-[10px] text-muted-foreground/70">(vazias / sem dados)</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/30 border border-border/60 text-center">
                   <p className="text-3xl font-bold text-foreground font-mono">
