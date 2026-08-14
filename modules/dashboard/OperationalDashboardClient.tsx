@@ -31,9 +31,58 @@ const itemVariants: Variants = {
   }
 };
 
+const formatMins = (mins: number) => {
+  if (mins === 0) return '0 min';
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}min`;
+};
+
+const CustomTooltip = ({ active, payload, label, currentMetric }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    
+    const getHighlight = (metric: string) => {
+      return currentMetric === metric ? "bg-primary/10 border-primary/20 -mx-2 px-2 py-1 rounded-lg" : "py-1";
+    };
+
+    return (
+      <div className="bg-background/95 backdrop-blur-md border border-border p-4 rounded-2xl shadow-xl min-w-[200px]">
+        <p className="font-mono text-sm text-muted-foreground mb-3 font-semibold">{label}</p>
+        
+        <div className="space-y-1">
+          <div className={`flex justify-between items-center gap-4 transition-colors ${getHighlight('totalMinutes')}`}>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tempo de atendimento</span>
+            <span className="font-mono font-bold text-primary">{formatMins(data.totalMinutes)}</span>
+          </div>
+          
+          <div className={`flex justify-between items-center gap-4 transition-colors ${getHighlight('tickets')}`}>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Chamados</span>
+            <span className="font-mono font-bold">{data.tickets}</span>
+          </div>
+          
+          <div className={`flex justify-between items-center gap-4 transition-colors ${getHighlight('averageMinutes')}`}>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tempo médio</span>
+            <span className="font-mono font-bold">{formatMins(data.averageMinutes)}</span>
+          </div>
+          
+          <div className={`flex justify-between items-center gap-4 transition-colors ${getHighlight('resolved')}`}>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resolvidos</span>
+            <span className="font-mono font-bold text-emerald-500">{data.resolved}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function OperationalDashboardClient() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [chartMetric, setChartMetric] = useState<"totalMinutes" | "tickets" | "resolved" | "averageMinutes">("totalMinutes");
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -164,25 +213,36 @@ export function OperationalDashboardClient() {
         </motion.div>
 
         {/* CHART SECTION */}
-        <motion.div variants={itemVariants} className="md:col-span-8 glass-card rounded-[2rem] p-8">
-          <div className="flex justify-between items-center mb-8">
+        <motion.div variants={itemVariants} className="md:col-span-8 glass-card rounded-[2rem] p-8 flex flex-col">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <h3 className="text-lg font-bold flex items-center gap-2 text-foreground">
               <ChartBar weight="duotone" className="w-6 h-6 text-primary" />
-              Volume por Hora
+              Carga de Atendimento por Hora
             </h3>
+            
+            <select 
+              value={chartMetric} 
+              onChange={(e) => setChartMetric(e.target.value as any)}
+              className="bg-secondary/50 border border-border text-sm rounded-xl px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="totalMinutes">Tempo de atendimento</option>
+              <option value="tickets">Chamados abertos</option>
+              <option value="resolved">Chamados resolvidos</option>
+              <option value="averageMinutes">Tempo médio por chamado</option>
+            </select>
           </div>
-          <div className="h-[280px] w-full">
+          <div className="h-[280px] w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={charts.byHour} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <BarChart key={chartMetric} data={charts.byHour} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B', fontFamily: 'var(--font-outfit)' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B', fontFamily: 'var(--font-outfit)' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B', fontFamily: 'var(--font-outfit)' }} tickFormatter={(val) => chartMetric === 'totalMinutes' || chartMetric === 'averageMinutes' ? formatMins(val) : val} />
                 <Tooltip 
                   cursor={{ fill: 'var(--secondary)', opacity: 0.5 }} 
-                  contentStyle={{ borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.08)' }} 
+                  content={<CustomTooltip currentMetric={chartMetric} />}
                 />
-                <Bar dataKey="value" radius={[8, 8, 8, 8]} maxBarSize={32}>
+                <Bar dataKey={chartMetric} radius={[8, 8, 8, 8]} maxBarSize={32} minPointSize={2}>
                   {charts.byHour.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.value > 5 ? 'var(--warning)' : 'var(--primary-brand)'} />
+                    <Cell key={`cell-${index}`} fill={entry[chartMetric] > (chartMetric === 'totalMinutes' ? 120 : chartMetric === 'tickets' ? 5 : 0) ? 'var(--warning)' : 'var(--primary-brand)'} />
                   ))}
                 </Bar>
               </BarChart>

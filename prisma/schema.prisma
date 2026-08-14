@@ -66,6 +66,7 @@ model User {
   assignedTickets Ticket[]        @relation("TicketTechnician")
   ticketComments  TicketComment[]
   ticketHistory   TicketHistory[]
+  ticketPauses    TicketPause[]
 
   @@index([email])
   @@index([role])
@@ -348,6 +349,7 @@ model Ticket {
   comments         TicketComment[]
   history          TicketHistory[]
   attachments      TicketAttachment[]
+  pauses           TicketPause[]
 
   @@unique([ticketNumber, ticketMonthYear])
   @@index([ticketNumber])
@@ -442,5 +444,25 @@ model ImportLog {
   createdAt       DateTime @default(now())
 
   @@map("import_logs")
+}
+
+// 22. TicketPause — Registro de pausas em atendimentos
+model TicketPause {
+  id        String    @id @default(uuid())
+  ticketId  String
+  ticket    Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reason    String?   // Motivo da pausa opcional
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+  duration  Int?      // Duração da pausa em minutos, quando a pausa for concluída
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([ticketId])
+  @@index([userId])
+  @@map("ticket_pauses")
 }
 

@@ -656,6 +656,7 @@ export async function getOperationalDashboardData(params: DashboardFilterParams 
         service: true,
         technician: true,
         requester: true,
+        pauses: true,
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -688,13 +689,40 @@ export async function getOperationalDashboardData(params: DashboardFilterParams 
   let totalWithSla = 0;
   let totalResolvedTime = 0;
   
-  const ticketsByHour = Array(24).fill(0);
+  // Initialize hours data structure
+  const hoursData = Array.from({ length: 24 }, (_, i) => ({
+    name: `${String(i).padStart(2, '0')}:00`,
+    tickets: 0,
+    totalMinutes: 0,
+    averageMinutes: 0,
+    resolved: 0
+  }));
+
   const criticalTickets: any[] = [];
   const techStats: Record<string, { id: string, name: string, activeCount: number, resolvedToday: number }> = {};
 
   activeTechs.forEach(tech => {
     techStats[tech.id] = { id: tech.id, name: tech.name, activeCount: 0, resolvedToday: 0 };
   });
+
+  const calculateEffectiveTime = (t: any): number => {
+    if (typeof t.totalTimeMinutes === 'number' && t.totalTimeMinutes > 0) {
+      return t.totalTimeMinutes;
+    }
+    if (t.startTime && t.endTime) {
+      const diffMs = new Date(t.endTime).getTime() - new Date(t.startTime).getTime();
+      let totalPauseMs = 0;
+      if (t.pauses && t.pauses.length > 0) {
+        t.pauses.forEach((p: any) => {
+          const start = new Date(p.startTime).getTime();
+          const end = p.endTime ? new Date(p.endTime).getTime() : new Date().getTime();
+          totalPauseMs += (end - start);
+        });
+      }
+      return Math.max(0, Math.floor((diffMs - totalPauseMs) / 60000));
+    }
+    return 0;
+  };
 
   tickets.forEach(t => {
     // Basic counts
@@ -747,7 +775,13 @@ export async function getOperationalDashboardData(params: DashboardFilterParams 
 
     // Tickets by hour
     const hour = new Date(t.createdAt).getHours();
-    ticketsByHour[hour]++;
+    hoursData[hour].tickets++;
+    if (t.status === "RESOLVIDO") {
+      hoursData[hour].resolved++;
+    }
+    
+    const effectiveTime = calculateEffectiveTime(t);
+    hoursData[hour].totalMinutes += effectiveTime;
   });
 
   // Calculate SLA %
@@ -758,10 +792,12 @@ export async function getOperationalDashboardData(params: DashboardFilterParams 
   const avgTimeMinutes = resolvedCount > 0 ? Math.round(totalResolvedTime / resolvedCount) : 0;
 
   // Format charts
-  const byHourChart = ticketsByHour.map((count, hour) => ({
-    name: `${String(hour).padStart(2, '0')}:00`,
-    value: count
-  })).filter((_, hour) => hour >= 6 && hour <= 20); // Only business hours to avoid empty space
+  const byHourChart = hoursData
+    .map(data => ({
+      ...data,
+      averageMinutes: data.tickets > 0 ? Math.round(data.totalMinutes / data.tickets) : 0
+    }))
+    .filter((_, hour) => hour >= 6 && hour <= 20); // Only business hours to avoid empty space
 
   const teamList = Object.values(techStats).sort((a, b) => b.activeCount - a.activeCount);
   const rankingList = [...teamList].sort((a, b) => b.resolvedToday - a.resolvedToday).slice(0, 5);
