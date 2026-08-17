@@ -102,6 +102,9 @@ export function ReportsClient() {
 
   const saveWidgets = async (updated: DashboardWidgetConfig[]) => {
     setWidgets(updated);
+    if (reportMode !== "PERSONALIZADO") {
+      setReportMode("PERSONALIZADO");
+    }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       await fetch("/api/report-layouts", {

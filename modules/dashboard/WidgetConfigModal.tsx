@@ -292,21 +292,24 @@ export function WidgetConfigModal({
 
                 {/* Seletor de Tamanho (Colunas) */}
                 <div className="flex items-center border border-border rounded overflow-hidden bg-background">
-                  {[1, 2, 3].map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => handleChangeColSpan(item.id, size as 1 | 2 | 3)}
-                      className={`h-8 px-2 text-xs font-semibold transition-colors ${
-                        item.colSpan === size
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-muted"
-                      }`}
-                      title={`${size} ${size === 1 ? "coluna" : "colunas"}`}
-                    >
-                      {size}x
-                    </button>
-                  ))}
+                  {[1, 2, 3].map((size) => {
+                    const label = size === 1 ? "Pequeno" : size === 2 ? "Médio" : "Largo";
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => handleChangeColSpan(item.id, size as 1 | 2 | 3)}
+                        className={`h-8 px-3 text-xs font-semibold transition-colors ${
+                          item.colSpan === size
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:bg-muted"
+                        }`}
+                        title={`${size} ${size === 1 ? "coluna" : "colunas"}`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Botão Ocultar / Exibir */}
