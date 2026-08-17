@@ -251,14 +251,19 @@ async function resolveRequester(
     return requesterCache.get(key)!;
   }
 
-  const existing = await prisma.requester.findFirst({
+  let existing = await prisma.requester.findFirst({
     where: {
       name: { equals: name.trim(), mode: "insensitive" },
-      deletedAt: null,
     },
   });
 
   if (existing) {
+    if (existing.deletedAt) {
+      existing = await prisma.requester.update({
+        where: { id: existing.id },
+        data: { deletedAt: null, isActive: true },
+      });
+    }
     requesterCache.set(key, existing.id);
     counters.existing++;
     return existing.id;
@@ -268,6 +273,16 @@ async function resolveRequester(
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]/g, "")}@cgconstrucoes.local`;
+
+  const existingByEmail = await prisma.requester.findUnique({
+    where: { email: generatedEmail },
+  });
+
+  if (existingByEmail) {
+    requesterCache.set(key, existingByEmail.id);
+    counters.existing++;
+    return existingByEmail.id;
+  }
 
   const created = await prisma.requester.create({
     data: {
@@ -293,14 +308,19 @@ async function resolveSector(
     return sectorCache.get(key)!;
   }
 
-  const existing = await prisma.sector.findFirst({
+  let existing = await prisma.sector.findFirst({
     where: {
       name: { equals: name.trim(), mode: "insensitive" },
-      deletedAt: null,
     },
   });
 
   if (existing) {
+    if (existing.deletedAt) {
+      existing = await prisma.sector.update({
+        where: { id: existing.id },
+        data: { deletedAt: null, isActive: true },
+      });
+    }
     sectorCache.set(key, existing.id);
     counters.existing++;
     return existing.id;
@@ -325,14 +345,19 @@ async function resolveService(
     return serviceCache.get(key)!;
   }
 
-  const existing = await prisma.service.findFirst({
+  let existing = await prisma.service.findFirst({
     where: {
       name: { equals: name.trim(), mode: "insensitive" },
-      deletedAt: null,
     },
   });
 
   if (existing) {
+    if (existing.deletedAt) {
+      existing = await prisma.service.update({
+        where: { id: existing.id },
+        data: { deletedAt: null, isActive: true },
+      });
+    }
     serviceCache.set(key, existing.id);
     counters.existing++;
     return existing.id;
@@ -357,15 +382,20 @@ async function resolveTechnician(
     return technicianCache.get(key)!;
   }
 
-  const existing = await prisma.user.findFirst({
+  let existing = await prisma.user.findFirst({
     where: {
       name: { equals: name.trim(), mode: "insensitive" },
       role: { in: ["ADMIN", "TI"] },
-      deletedAt: null,
     },
   });
 
   if (existing) {
+    if (existing.deletedAt) {
+      existing = await prisma.user.update({
+        where: { id: existing.id },
+        data: { deletedAt: null, isActive: true },
+      });
+    }
     technicianCache.set(key, existing.id);
     counters.existing++;
     return existing.id;
@@ -543,15 +573,9 @@ export async function executeCsvImport(
     }
   }
 
-  if (monthsInCsv.size > 0) {
-    await prisma.ticket.deleteMany({
-      where: {
-        ticketMonthYear: {
-          in: Array.from(monthsInCsv),
-        },
-      },
-    });
-  }
+  // Removido: Não deletamos mais os chamados do mês.
+  // A verificação de duplicidade por linha garantirá que os chamados existentes sejam preservados,
+  // e apenas os novos chamados adicionados à planilha serão importados (idempotência).
 
   const reqCounters = { new: 0, existing: 0 };
   const secCounters = { new: 0, existing: 0 };
@@ -628,6 +652,23 @@ export async function executeCsvImport(
           const nextNumbers = new Map<string, number>();
 
           for (const item of resolvedBatch) {
+            // Verifica se o chamado já existe (idempotência)
+            const existingTicket = await tx.ticket.findFirst({
+              where: {
+                ticketMonthYear: item.monthYear,
+                ticketDate: item.dateObj,
+                requesterId: item.requesterId,
+                sectorId: item.sectorId,
+                serviceId: item.serviceId,
+                problem: item.row.problema || "Importado do CSV",
+              },
+            });
+
+            if (existingTicket) {
+              // Ignorar se o chamado já existir (já importado ou criado manualmente idêntico)
+              continue;
+            }
+
             // Get next ticket number for the monthYear if not cached
             let nextNumber = nextNumbers.get(item.monthYear);
             
