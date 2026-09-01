@@ -26,31 +26,42 @@ export function RequesterHistoryModal({
   const [selectedMonth, setSelectedMonth] = useState<string>("ALL");
 
   useEffect(() => {
-    if (initialHistory) {
+    if (!open) {
+      return;
+    }
+
+    if (initialHistory && initialHistory.requesterId === requesterId) {
       setHistory(initialHistory);
       return;
     }
 
-    if (!open || !requesterId) return;
+    if (!requesterId) return;
+
+    let isMounted = true;
+    setHistory(null); // Limpa o estado anterior na hora para mostrar o loading
+    setLoading(true);
 
     async function fetchHistory() {
-      setLoading(true);
       try {
         const res = await fetch(
           `/api/requesters/suggest?requesterId=${encodeURIComponent(requesterId!)}`
         );
-        if (res.ok) {
+        if (res.ok && isMounted) {
           const data = await res.json();
           setHistory(data.history || null);
         }
       } catch (err) {
         console.error("Erro ao buscar histórico do solicitante:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
 
     fetchHistory();
+
+    return () => {
+      isMounted = false;
+    };
   }, [requesterId, open, initialHistory]);
 
   const availableMonths = React.useMemo(() => {
