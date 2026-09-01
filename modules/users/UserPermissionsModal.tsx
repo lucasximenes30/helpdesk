@@ -60,7 +60,6 @@ export function UserPermissionsModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isAdmin = userRole === "ADMIN";
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -105,7 +104,6 @@ export function UserPermissionsModal({
   };
 
   const handleToggle = (permId: string) => {
-    if (isAdmin) return; // ADMIN não edita manualmente, tem tudo concedido
     setSelectedMap((prev) => ({
       ...prev,
       [permId]: !prev[permId],
@@ -113,7 +111,6 @@ export function UserPermissionsModal({
   };
 
   const handleSelectAllCategory = (catPermissions: PermissionItem[], state: boolean) => {
-    if (isAdmin) return;
     const update: Record<string, boolean> = {};
     catPermissions.forEach((p) => {
       update[p.id] = state;
@@ -125,7 +122,7 @@ export function UserPermissionsModal({
   };
 
   const handleSave = async () => {
-    if (!userId || isAdmin) return;
+    if (!userId) return;
     setSaving(true);
     setError(null);
 
@@ -187,7 +184,7 @@ export function UserPermissionsModal({
               Role: {userRole}
             </Badge>
           </div>
-          <DialogDescription>
+          <DialogDescription className="text-gray-700 dark:text-gray-300">
             Configure as permissões específicas e exceções para o usuário <strong>{userName}</strong>. As permissões selecionadas têm precedência sobre a regra do papel padrão.
           </DialogDescription>
         </DialogHeader>
@@ -203,16 +200,6 @@ export function UserPermissionsModal({
             <div className="flex h-48 items-center justify-center text-muted-foreground">
               <Loader2 className="mr-2 h-6 w-6 animate-spin text-primary" />
               Carregando matriz de permissões...
-            </div>
-          ) : isAdmin ? (
-            <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-6 text-center dark:border-blue-900/50 dark:bg-blue-950/20">
-              <Lock className="mx-auto h-10 w-10 text-blue-600 dark:text-blue-400 mb-2" />
-              <h4 className="font-semibold text-blue-900 dark:text-blue-100">
-                Acesso de Administrador Irrestrito
-              </h4>
-              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                O papel <strong>ADMIN</strong> possui por definição todas as permissões do sistema concedidas automaticamente. Não é necessário aplicar exceções manuais.
-              </p>
             </div>
           ) : (
             categories.map((group) => {
@@ -295,12 +282,10 @@ export function UserPermissionsModal({
           <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
             Fechar
           </Button>
-          {!isAdmin && (
-            <Button type="button" onClick={handleSave} disabled={saving || loading}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar Permissões
-            </Button>
-          )}
+          <Button type="button" onClick={handleSave} disabled={saving || loading}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Salvar Permissões
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
