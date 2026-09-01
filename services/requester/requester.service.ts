@@ -144,7 +144,7 @@ export async function getRequesterHistory(requesterId: string): Promise<Requeste
         select: { name: true },
       },
     },
-    take: 20,
+    take: 1000,
   });
 
   const totalTickets = await prisma.ticket.count({

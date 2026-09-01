@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, History, Clock, AlertCircle, Eye, ScrollText } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader as DHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { History, Clock, AlertCircle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RequesterHistoryModal } from "./RequesterHistoryModal";
 
 export interface RequesterHistorySummary {
   requesterId: string;
@@ -96,147 +96,38 @@ export function RequesterHistoryCard({
   if (!history) return null;
 
   return (
-    <Card className="border border-border/80 bg-card/60 shadow-sm">
-      <CardHeader className="p-3 pb-2 flex flex-row items-center justify-between border-b border-border/40">
-        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <History className="w-3.5 h-3.5 text-primary" />
-          Histórico de Atendimentos — {history.requesterName}
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[10px] font-mono">
-            Total: {history.totalTickets} {history.totalTickets === 1 ? "chamado" : "chamados"}
-          </Badge>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-6 h-6 rounded-full hover:bg-primary/10 text-primary transition-colors"
-            onClick={() => setModalOpen(true)}
-            title="Visualizar Histórico Completo"
-          >
-            <Eye className="w-4 h-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="p-3 space-y-2.5">
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-muted/30 p-2 rounded border border-border/40">
-            <span className="text-[10px] uppercase text-muted-foreground block font-medium">
-              Último Atendimento
-            </span>
-            <span className="font-medium text-foreground">
-              {history.lastTicketDate
-                ? new Date(history.lastTicketDate).toLocaleDateString("pt-BR")
-                : "Sem atendimentos"}
-            </span>
+    <>
+      <Card className="border border-border/80 bg-card/60 shadow-sm">
+        <CardHeader className="p-3 flex flex-row items-center justify-between">
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <History className="w-3.5 h-3.5 text-primary" />
+            Histórico de Atendimentos — {history.requesterName}
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px] font-mono">
+              Total: {history.totalTickets} {history.totalTickets === 1 ? "chamado" : "chamados"}
+            </Badge>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="w-6 h-6 rounded-full hover:bg-primary/10 text-primary transition-colors"
+              onClick={() => setModalOpen(true)}
+              title="Visualizar Histórico Completo"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
           </div>
-          <div className="bg-muted/30 p-2 rounded border border-border/40">
-            <span className="text-[10px] uppercase text-muted-foreground block font-medium">
-              Último Técnico
-            </span>
-            <span className="font-medium text-foreground flex items-center gap-1 truncate">
-              <UserCheck className="w-3 h-3 text-emerald-500 shrink-0" />
-              {history.lastTechnicianName || "Nenhum atribuído"}
-            </span>
-          </div>
-        </div>
+        </CardHeader>
+      </Card>
 
-        {history.recentTickets.length > 0 && (
-          <div className="space-y-1.5">
-            <span className="text-[10px] uppercase text-muted-foreground font-semibold block">
-              Atendimentos Recentes
-            </span>
-            <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-              {history.recentTickets.slice(0, 5).map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center justify-between text-xs py-1 px-2 rounded bg-muted/20 hover:bg-muted/40 transition-colors border border-border/30"
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="font-mono font-bold text-primary text-[11px]">
-                      #{t.ticketNumber}
-                    </span>
-                    <span className="truncate text-foreground font-medium max-w-[160px]">
-                      {t.problem}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      {new Date(t.ticketDate).toLocaleDateString("pt-BR")}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] px-1 py-0 uppercase tracking-tighter"
-                    >
-                      {t.status === "ABERTO"
-                        ? "Em Atend."
-                        : t.status === "RESOLVIDO"
-                        ? "Resolvido"
-                        : t.status === "AGUARDANDO_USUARIO"
-                        ? "Aguardando"
-                        : "Agendado"}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-          <DHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ScrollText className="w-5 h-5 text-primary" />
-              Histórico Completo
-            </DialogTitle>
-            <DialogDescription>
-              Abaixo estão os chamados recentes abertos por <strong>{history.requesterName}</strong>. Total de chamados: {history.totalTickets}.
-            </DialogDescription>
-          </DHeader>
-          
-          <div className="space-y-3 mt-4">
-            {history.recentTickets.map((t) => (
-              <div
-                key={t.id}
-                className="flex flex-col gap-2 text-sm p-4 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors border border-border/50"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-primary text-sm">
-                      #{t.ticketNumber}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground font-mono">
-                      {new Date(t.ticketDate).toLocaleDateString("pt-BR")} às {new Date(t.ticketDate).toLocaleTimeString("pt-BR", {hour: '2-digit', minute:'2-digit'})}
-                    </span>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] px-2 py-0.5 uppercase tracking-tighter"
-                  >
-                    {t.status === "ABERTO"
-                      ? "Em Atendimento"
-                      : t.status === "RESOLVIDO"
-                      ? "Resolvido"
-                      : t.status === "AGUARDANDO_USUARIO"
-                      ? "Aguardando"
-                      : "Agendado"}
-                  </Badge>
-                </div>
-                
-                <div className="font-medium text-foreground">
-                  {t.problem}
-                </div>
-                
-                <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  Atendido por: {t.technicianName || "Nenhum atribuído"}
-                </div>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </Card>
+      <RequesterHistoryModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        requesterId={history.requesterId}
+        requesterName={history.requesterName}
+        initialHistory={history}
+      />
+    </>
   );
 }

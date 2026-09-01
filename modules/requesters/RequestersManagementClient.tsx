@@ -24,9 +24,11 @@ import {
   UserMinus,
   Trash,
   ArrowsClockwise,
+  Eye,
 } from "@phosphor-icons/react";
 import { RequesterModal, RequesterRow } from "./RequesterModal";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { RequesterHistoryModal } from "../tickets/RequesterHistoryModal";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -60,6 +62,10 @@ export function RequestersManagementClient() {
   // Controle de Modais
   const [isRequesterModalOpen, setIsRequesterModalOpen] = useState(false);
   const [requesterToEdit, setRequesterToEdit] = useState<RequesterRow | null>(null);
+
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyRequesterId, setHistoryRequesterId] = useState<string | null>(null);
+  const [historyRequesterName, setHistoryRequesterName] = useState<string | null>(null);
 
   const [confirmDeleteRequester, setConfirmDeleteRequester] = useState<RequesterRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -174,7 +180,20 @@ export function RequestersManagementClient() {
       key: "id",
       label: "",
       render: (u) => (
-        <div className="flex justify-end">
+        <div className="flex justify-end items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-primary hover:bg-primary/10"
+            onClick={() => {
+              setHistoryRequesterId(u.id);
+              setHistoryRequesterName(u.name);
+              setHistoryModalOpen(true);
+            }}
+            title="Ver Histórico de Chamados"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -332,6 +351,13 @@ export function RequestersManagementClient() {
         onConfirm={handleDeleteConfirm}
         isConfirming={isDeleting}
         variant="destructive"
+      />
+
+      <RequesterHistoryModal
+        open={historyModalOpen}
+        onOpenChange={setHistoryModalOpen}
+        requesterId={historyRequesterId}
+        requesterName={historyRequesterName}
       />
     </motion.div>
   );
