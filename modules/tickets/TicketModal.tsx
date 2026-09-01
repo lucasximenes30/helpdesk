@@ -588,19 +588,12 @@ export function TicketModal({
                       <label className="text-xs font-medium text-muted-foreground block mb-1">
                         Início
                       </label>
-                      <div className="flex items-center gap-1 w-full bg-background border border-input rounded-md px-2 py-2 focus-within:ring-2 focus-within:ring-primary transition-all">
+                      <div className="flex items-center w-full bg-background border border-input rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-primary transition-all">
                         <input
-                          type="date"
-                          value={startTime ? startTime.split('T')[0] : ''}
-                          onChange={(e) => setStartTime(`${e.target.value}T${startTime ? startTime.split('T')[1] : '00:00'}`)}
-                          className="bg-transparent outline-none text-sm w-[115px]"
-                        />
-                        <span className="text-muted-foreground text-xs font-medium">às</span>
-                        <input
-                          type="time"
-                          value={startTime ? startTime.split('T')[1] : ''}
-                          onChange={(e) => setStartTime(`${startTime ? startTime.split('T')[0] : new Date().toISOString().split('T')[0]}T${e.target.value}`)}
-                          className="bg-transparent outline-none text-sm min-w-0 flex-1"
+                          type="datetime-local"
+                          value={startTime ? startTime.substring(0, 16) : ''}
+                          onChange={(e) => setStartTime(e.target.value)}
+                          className="bg-transparent outline-none text-sm w-full"
                         />
                       </div>
                     </div>
@@ -608,19 +601,12 @@ export function TicketModal({
                       <label className="text-xs font-medium text-muted-foreground block mb-1">
                         Fim
                       </label>
-                      <div className="flex items-center gap-1 w-full bg-background border border-input rounded-md px-2 py-2 focus-within:ring-2 focus-within:ring-primary transition-all">
+                      <div className="flex items-center w-full bg-background border border-input rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-primary transition-all">
                         <input
-                          type="date"
-                          value={endTime ? endTime.split('T')[0] : ''}
-                          onChange={(e) => setEndTime(`${e.target.value}T${endTime ? (endTime.split('T')[1] || '00:00') : '00:00'}`)}
-                          className="bg-transparent outline-none text-sm w-[115px]"
-                        />
-                        <span className="text-muted-foreground text-xs font-medium">às</span>
-                        <input
-                          type="time"
-                          value={endTime ? endTime.split('T')[1] : ''}
-                          onChange={(e) => setEndTime(`${endTime ? endTime.split('T')[0] : new Date().toISOString().split('T')[0]}T${e.target.value}`)}
-                          className="bg-transparent outline-none text-sm min-w-0 flex-1"
+                          type="datetime-local"
+                          value={endTime ? endTime.substring(0, 16) : ''}
+                          onChange={(e) => setEndTime(e.target.value)}
+                          className="bg-transparent outline-none text-sm w-full"
                         />
                       </div>
                     </div>

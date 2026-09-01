@@ -773,8 +773,9 @@ export async function getOperationalDashboardData(params: DashboardFilterParams 
       }
     }
 
-    // Tickets by hour
-    const hour = new Date(t.createdAt).getHours();
+    // Tickets by hour (Adjusted for BRT timezone - America/Sao_Paulo)
+    const dateBRT = new Date(new Date(t.createdAt).toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const hour = dateBRT.getHours();
     hoursData[hour].tickets++;
     if (t.status === "RESOLVIDO") {
       hoursData[hour].resolved++;
