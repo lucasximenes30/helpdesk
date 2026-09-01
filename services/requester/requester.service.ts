@@ -33,7 +33,7 @@ export async function suggestRequesters(query: string): Promise<RequesterSuggest
         isActive: true,
       },
       orderBy: { name: "asc" },
-      take: 10,
+      take: 2000,
     });
     return defaultList;
   }
@@ -144,7 +144,7 @@ export async function getRequesterHistory(requesterId: string): Promise<Requeste
         select: { name: true },
       },
     },
-    take: 10,
+    take: 20,
   });
 
   const totalTickets = await prisma.ticket.count({
@@ -166,7 +166,7 @@ export async function getRequesterHistory(requesterId: string): Promise<Requeste
     }
   }
 
-  const recentTickets = tickets.slice(0, 5).map((t) => ({
+  const recentTickets = tickets.map((t) => ({
     id: t.id,
     ticketNumber: t.ticketNumber,
     problem: t.problem,
