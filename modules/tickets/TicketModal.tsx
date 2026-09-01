@@ -12,6 +12,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Clock,
   History,
@@ -33,6 +43,7 @@ export interface TicketModalProps {
   services: Array<{ id: string; name: string; category?: string | null }>;
   technicians: Array<{ id: string; name: string; email: string }>;
   onSaved: () => void;
+  initialStatus?: string;
 }
 
 export function TicketModal({
@@ -43,6 +54,7 @@ export function TicketModal({
   services,
   technicians,
   onSaved,
+  initialStatus,
 }: TicketModalProps) {
   const isEditing = Boolean(ticketId);
 
@@ -67,6 +79,7 @@ export function TicketModal({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [observations, setObservations] = useState("");
+  const [solutionText, setSolutionText] = useState("");
   const [totalTimeMinutes, setTotalTimeMinutes] = useState<number | null>(null);
 
   // Autocomplete Solicitante
@@ -80,6 +93,10 @@ export function TicketModal({
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
   const [addingComment, setAddingComment] = useState(false);
+  const [isInternalComment, setIsInternalComment] = useState(false);
+  
+  const [ccAddresses, setCcAddresses] = useState<string | null>(null);
+  const [replyAll, setReplyAll] = useState(true);
 
   // Load ticket data if editing
   useEffect(() => {
@@ -106,17 +123,25 @@ export function TicketModal({
       setHasLoadedRequesters(false);
       setHistoryEvents([]);
       setComments([]);
+      setCcAddresses(null);
       return;
     }
 
+    const toLocalDatetimeString = (dateVal: string | Date | null) => {
+      if (!dateVal) return "";
+      const d = new Date(dateVal);
+      const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 16);
+    };
+
     if (ticketId) {
-      fetchTicketDetails(ticketId);
+      fetchTicketDetails(ticketId, toLocalDatetimeString);
     } else {
-      setStartTime(new Date().toISOString().slice(0, 16));
+      setStartTime(toLocalDatetimeString(new Date()));
     }
   }, [open, ticketId]);
 
-  async function fetchTicketDetails(id: string) {
+  async function fetchTicketDetails(id: string, toLocalDatetimeString: (d: any) => string) {
     setLoading(true);
     try {
       const res = await fetch(`/api/tickets/${id}`);
@@ -130,13 +155,14 @@ export function TicketModal({
         setTechnicianId(data.technicianId || "");
         setProblem(data.problem || "");
         setDescription(data.description || "");
-        setStatus(data.status || "ABERTO");
+        setStatus(initialStatus || data.status || "ABERTO");
         setOrigin(data.origin || "MANUAL");
         setPriority(data.priority || "MEDIA");
-        setStartTime(data.startTime ? new Date(data.startTime).toISOString().slice(0, 16) : "");
-        setEndTime(data.endTime ? new Date(data.endTime).toISOString().slice(0, 16) : "");
+        setStartTime(toLocalDatetimeString(data.startTime));
+        setEndTime(toLocalDatetimeString(data.endTime));
         setObservations(data.observations || "");
         setTotalTimeMinutes(data.totalTimeMinutes || null);
+        setCcAddresses(data.cc || null);
         setHistoryEvents(data.history || []);
         setComments(data.comments || []);
         
@@ -220,6 +246,11 @@ export function TicketModal({
       alert("Por favor, preencha Solicitante, Setor, Serviço e Problema.");
       return;
     }
+    
+    if (status === "RESOLVIDO" && !solutionText.trim()) {
+      alert("É necessário informar a solução para concluir o chamado");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -235,9 +266,10 @@ export function TicketModal({
         status,
         origin,
         priority,
-        startTime: startTime ? new Date(startTime).toISOString() : new Date().toISOString(),
+        startTime: startTime ? new Date(startTime).toISOString() : null,
         endTime: endTime ? new Date(endTime).toISOString() : null,
         observations,
+        solutionText: status === "RESOLVIDO" ? solutionText : undefined,
       };
 
       const url = isEditing ? `/api/tickets/${ticketId}` : "/api/tickets";
@@ -304,7 +336,11 @@ export function TicketModal({
       const res = await fetch(`/api/tickets/${ticketId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newComment }),
+        body: JSON.stringify({ 
+          text: newComment,
+          isInternal: isInternalComment,
+          replyAll: !isInternalComment && replyAll ? true : false,
+        }),
       });
       if (res.ok) {
         const created = await res.json();
@@ -518,18 +554,19 @@ export function TicketModal({
                       <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
                         Status
                       </label>
-                      <select
-                        className="w-full h-9 px-2 text-xs rounded-md border border-input bg-background"
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                      >
-                        <option value="ABERTO">Aberto</option>
-                        <option value="EM_ANDAMENTO">Em andamento</option>
-                        <option value="AGUARDANDO_USUARIO">Aguardando usuário</option>
-                        <option value="AGUARDANDO_PECA">Aguardando peça</option>
-                        <option value="RESOLVIDO">Resolvido</option>
-                        <option value="CANCELADO">Cancelado</option>
-                      </select>
+                      <Select value={status} onValueChange={(val) => { if (val) setStatus(val); }}>
+                        <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectValue placeholder="Selecione o status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ABERTO">Aberto</SelectItem>
+                          <SelectItem value="EM_ATENDIMENTO">Em Atendimento</SelectItem>
+                          <SelectItem value="AGUARDANDO_TERCEIROS">Aguardando Terceiros</SelectItem>
+                          <SelectItem value="AGUARDANDO_USUARIO">Aguardando Usuário</SelectItem>
+                          <SelectItem value="RESOLVIDO">Resolvido (Concluir)</SelectItem>
+                          <SelectItem value="CANCELADO">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div>
@@ -619,6 +656,23 @@ export function TicketModal({
                       </span>
                     </div>
                   </div>
+                  
+                  {status === "RESOLVIDO" && (
+                    <div className="pt-2 border-t border-border/50 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <Label htmlFor="solutionText" className="text-emerald-600 flex items-center gap-1.5 mb-1.5">
+                        Solução / Resolução do Chamado <span className="text-danger">*</span>
+                      </Label>
+                      <Textarea
+                        id="solutionText"
+                        placeholder="Descreva o que foi feito para solucionar este chamado (Isso será enviado ao cliente por e-mail)..."
+                        value={solutionText}
+                        onChange={(e) => setSolutionText(e.target.value)}
+                        rows={3}
+                        className="border-emerald-200 focus-visible:ring-emerald-500 bg-emerald-50/30"
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">Ao salvar o chamado como Concluído, um e-mail será enviado ao solicitante contendo esta solução.</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Lado Direito - Card de Histórico do Solicitante */}
@@ -693,7 +747,7 @@ export function TicketModal({
               <div className="space-y-4 py-2">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Escreva um comentário interno para a equipe de TI..."
+                    placeholder="Escreva um comentário ou resposta..."
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     className="text-xs"
@@ -707,6 +761,34 @@ export function TicketModal({
                     <Send className="w-3.5 h-3.5 mr-1.5" />
                     Enviar
                   </Button>
+                </div>
+                
+                <div className="flex items-center gap-4 px-1 pb-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="internalNote"
+                      checked={isInternalComment}
+                      onChange={(e) => setIsInternalComment(e.target.checked)}
+                      className="rounded border-border text-primary cursor-pointer w-3.5 h-3.5"
+                    />
+                    <Label htmlFor="internalNote" className="text-xs font-semibold cursor-pointer text-muted-foreground">Nota Interna (Oculta)</Label>
+                  </div>
+                  
+                  {!isInternalComment && ccAddresses && (
+                    <div className="flex items-center gap-2 ml-2 border-l border-border/50 pl-4">
+                      <input 
+                        type="checkbox" 
+                        id="replyAll" 
+                        checked={replyAll}
+                        onChange={(e) => setReplyAll(e.target.checked)}
+                        className="rounded border-border text-primary cursor-pointer w-3.5 h-3.5"
+                      />
+                      <Label htmlFor="replyAll" className="text-xs cursor-pointer truncate max-w-[200px]" title={ccAddresses}>
+                        Responder a todos em cópia ({ccAddresses.split(',').length})
+                      </Label>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1">

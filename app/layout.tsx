@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
-import { Outfit, Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Outfit, Space_Grotesk, JetBrains_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/providers/app-providers";
 import { getSession } from "@/lib/auth";
+import { Toaster } from "sonner";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
@@ -27,11 +31,12 @@ export default async function RootLayout({
   const session = await getSession();
 
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body
         className={`${outfit.variable} ${spaceGrotesk.variable} ${jetBrainsMono.variable} min-h-screen bg-background font-sans antialiased`}
       >
         <AppProviders initialUser={session}>{children}</AppProviders>
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

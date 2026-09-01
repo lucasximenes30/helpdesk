@@ -183,13 +183,37 @@ model Settings {
   reportDefaultTheme String @default("LIGHT")
   auditRetentionDays Int  @default(90)
   auditLogEnabled Boolean @default(true)
+  googleRefreshToken String?
+  emailIntegrationStatus String @default("DISCONNECTED")
+  lastEmailCheck DateTime?
+  lastEmailProcessed DateTime?
+  emailCheckError String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@map("settings")
 }
 
-// 8. Requester
+// 8. ProcessedEmail
+model ProcessedEmail {
+  id         String   @id @default(uuid())
+  messageId  String   @unique
+  subject    String?
+  from       String?
+  receivedAt DateTime?
+  processedAt DateTime @default(now())
+  ticketId   String?
+  ticket     Ticket?  @relation(fields: [ticketId], references: [id])
+  status     String   @default("PROCESSED") // PROCESSED, ERROR
+  bodyReceived String? // O corpo extraído do email IMAP
+  bodySent     String? // O HTML exato do template que foi enviado em resposta
+  cc           String? // E-mails em cópia no momento do recebimento (separados por vírgula)
+  manualReplies Json?  // Histórico de respostas enviadas pelo admin
+  
+  @@map("processed_emails")
+}
+
+// 9. Requester
 model Requester {
   id         String    @id @default(uuid())
   name       String
@@ -341,6 +365,8 @@ model Ticket {
   observations     String?        // Observações
   aiSummary        String?        // [AI Ready] Resumo gerado do chamado
   aiMetadata       Json?          // [AI Ready] Metadados extras da IA (tags, sentiment, etc.)
+  cc               String?        // E-mails em cópia
+  hasUnreadReply   Boolean        @default(false)
   isArchived       Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -350,6 +376,7 @@ model Ticket {
   history          TicketHistory[]
   attachments      TicketAttachment[]
   pauses           TicketPause[]
+  processedEmails  ProcessedEmail[]
 
   @@unique([ticketNumber, ticketMonthYear])
   @@index([ticketNumber])
@@ -464,5 +491,21 @@ model TicketPause {
   @@index([ticketId])
   @@index([userId])
   @@map("ticket_pauses")
+}
+
+// 23. EmailTemplate
+model EmailTemplate {
+  id           String   @id @default(uuid())
+  code         String   @unique // e.g. TICKET_CREATED
+  name         String
+  subject      String
+  bodyHtml     String
+  showPriority Boolean  @default(true)
+  showStatus   Boolean  @default(true)
+  primaryColor String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("email_templates")
 }
 

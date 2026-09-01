@@ -21,6 +21,9 @@ export interface CreateTicketInput {
   startTime?: Date | null;
   endTime?: Date | null;
   observations?: string;
+  cc?: string | null;
+  totalTimeMinutes?: number | null;
+  isArchived?: boolean;
 }
 
 /**
@@ -74,7 +77,8 @@ export async function createTicket(
   input: CreateTicketInput,
   actorId?: string,
   actorName?: string,
-  ipAddress?: string
+  ipAddress?: string,
+  sendEmail: boolean = true
 ) {
   const requester = await getOrCreateRequester({
     id: input.requesterId,
@@ -122,7 +126,8 @@ export async function createTicket(
       endTime,
       totalTimeMinutes,
       observations: input.observations?.trim() || null,
-      isArchived: false,
+      isArchived: input.isArchived || false,
+      cc: input.cc || null,
     },
     ticketDateObj
   );
@@ -159,7 +164,7 @@ export async function createTicket(
   });
 
   // Dispara o e-mail de notificação de abertura de forma assíncrona (não bloqueante)
-  if (requester.email) {
+  if (sendEmail && requester.email) {
     sendTicketCreatedEmail(ticket, requester.email, requester.name).catch((err) => {
       console.error("[EMAIL] Erro inesperado ao tentar notificar abertura do chamado:", err);
     });

@@ -32,6 +32,11 @@ export interface CorporateSettingsDTO {
   reportDefaultTheme: string;
   auditRetentionDays: number;
   auditLogEnabled: boolean;
+  googleRefreshToken?: string | null;
+  emailIntegrationStatus?: string;
+  lastEmailCheck?: Date | null;
+  lastEmailProcessed?: Date | null;
+  emailCheckError?: string | null;
 }
 
 const DEFAULT_COMPANY_ID = "cg-construcoes-001";
@@ -129,6 +134,11 @@ export async function getCorporateSettings(): Promise<CorporateSettingsDTO> {
     reportDefaultTheme: (settings as any).reportDefaultTheme ?? "LIGHT",
     auditRetentionDays: (settings as any).auditRetentionDays ?? 90,
     auditLogEnabled: (settings as any).auditLogEnabled ?? true,
+    googleRefreshToken: (settings as any).googleRefreshToken,
+    emailIntegrationStatus: (settings as any).emailIntegrationStatus,
+    lastEmailCheck: (settings as any).lastEmailCheck,
+    lastEmailProcessed: (settings as any).lastEmailProcessed,
+    emailCheckError: (settings as any).emailCheckError,
   };
 }
 
@@ -171,6 +181,11 @@ export async function updateCorporateSettings(
       reportDefaultTheme: data.reportDefaultTheme ?? current.reportDefaultTheme,
       auditRetentionDays: data.auditRetentionDays ?? current.auditRetentionDays,
       auditLogEnabled: data.auditLogEnabled ?? current.auditLogEnabled,
+      googleRefreshToken: data.googleRefreshToken !== undefined ? data.googleRefreshToken : current.googleRefreshToken,
+      emailIntegrationStatus: data.emailIntegrationStatus !== undefined ? data.emailIntegrationStatus : current.emailIntegrationStatus,
+      lastEmailCheck: data.lastEmailCheck !== undefined ? data.lastEmailCheck : current.lastEmailCheck,
+      lastEmailProcessed: data.lastEmailProcessed !== undefined ? data.lastEmailProcessed : current.lastEmailProcessed,
+      emailCheckError: data.emailCheckError !== undefined ? data.emailCheckError : current.emailCheckError,
     },
   });
 
@@ -225,5 +240,10 @@ export async function updateCorporateSettings(
     reportDefaultTheme: (updated as any).reportDefaultTheme ?? "LIGHT",
     auditRetentionDays: (updated as any).auditRetentionDays ?? 90,
     auditLogEnabled: (updated as any).auditLogEnabled ?? true,
+    googleRefreshToken: (updated as any).googleRefreshToken,
+    emailIntegrationStatus: (updated as any).emailIntegrationStatus,
+    lastEmailCheck: (updated as any).lastEmailCheck,
+    lastEmailProcessed: (updated as any).lastEmailProcessed,
+    emailCheckError: (updated as any).emailCheckError,
   };
 }

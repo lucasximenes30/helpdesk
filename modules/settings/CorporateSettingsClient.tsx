@@ -268,6 +268,46 @@ export function CorporateSettingsClient() {
     }
   };
 
+  const handleConnectGoogle = () => {
+    window.location.href = "/api/settings/email/oauth";
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm("Tem certeza que deseja desconectar o e-mail? O sistema parará de receber chamados automáticos.")) return;
+    try {
+      const res = await fetch("/api/settings/email/disconnect", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao desconectar");
+      alert("Conta desconectada com sucesso.");
+      
+      const refresh = await fetch("/api/settings");
+      if (refresh.ok) setForm(await refresh.json());
+    } catch (e: any) {
+      alert("Falha ao desconectar: " + e.message);
+    }
+  };
+
+  const handleCheckNow = async () => {
+    if (!confirm("Isso iniciará a verificação imediata da caixa de entrada. Deseja continuar?")) return;
+    try {
+      const res = await fetch("/api/email/check", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer helpdesk-cron-secret-123"
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao verificar");
+      alert(`Verificação concluída.\nE-mails processados e chamados criados: ${data.processed || 0}\nErros encontrados: ${data.errors || 0}`);
+      
+      // Refresh form data
+      const refresh = await fetch("/api/settings");
+      if (refresh.ok) setForm(await refresh.json());
+    } catch (e: any) {
+      alert("Falha ao verificar e-mails: " + e.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -1062,6 +1102,91 @@ export function CorporateSettingsClient() {
                   )}
                 </div>
               </div>
+
+              {/* IMAP Recebimento Card */}
+              <div className="p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/20 transition-colors space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-500">
+                      <FileText weight="duotone" className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-display font-bold text-foreground">
+                        Recebimento Automático de E-mails
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Ler caixa de entrada e criar chamados via IMAP + OAuth 2.0
+                      </p>
+                    </div>
+                  </div>
+                  {form.emailIntegrationStatus === "CONNECTED" && (
+                    <Badge className="bg-success/10 text-success border-success/20 rounded-full px-3">
+                      Conectado
+                    </Badge>
+                  )}
+                  {form.emailIntegrationStatus === "DISCONNECTED" && (
+                    <Badge className="bg-muted text-muted-foreground border-border/60 rounded-full px-3">
+                      Desconectado
+                    </Badge>
+                  )}
+                  {form.emailIntegrationStatus === "ERROR" && (
+                    <Badge className="bg-danger/10 text-danger border-danger/20 rounded-full px-3">
+                      Erro
+                    </Badge>
+                  )}
+                </div>
+
+                {form.emailIntegrationStatus === "ERROR" && form.emailCheckError && (
+                  <div className="p-3 bg-danger/10 text-danger text-xs rounded-xl border border-danger/20">
+                    {form.emailCheckError}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-3 pt-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Última verificação:</span>
+                    <span className="font-medium text-foreground">{form.lastEmailCheck ? new Date(form.lastEmailCheck).toLocaleString('pt-BR') : 'Nunca'}</span>
+                  </div>
+                  <div className="flex justify-between text-xs mb-2">
+                    <span className="text-muted-foreground">Último e-mail processado:</span>
+                    <span className="font-medium text-foreground">{form.lastEmailProcessed ? new Date(form.lastEmailProcessed).toLocaleString('pt-BR') : 'Nenhum'}</span>
+                  </div>
+
+                  <div className="flex flex-col gap-3 mt-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        onClick={handleConnectGoogle} 
+                        className="font-bold text-xs h-10 rounded-xl w-full" 
+                        variant={form.emailIntegrationStatus === "CONNECTED" ? "outline" : "default"}
+                      >
+                        {form.emailIntegrationStatus === "CONNECTED" ? "Reconectar OAuth" : "Conectar Google Workspace"}
+                      </Button>
+                      <Button 
+                        onClick={handleCheckNow} 
+                        className="font-bold text-xs h-10 rounded-xl w-full"
+                        variant="secondary"
+                      >
+                        Verificar Novos E-mails
+                      </Button>
+                    </div>
+                    {form.emailIntegrationStatus === "CONNECTED" && (
+                      <Button 
+                        onClick={handleDisconnect} 
+                        className="font-bold text-xs h-10 rounded-xl w-full text-danger border-danger/30 hover:bg-danger/10 hover:text-danger"
+                        variant="outline"
+                      >
+                        Desconectar Conta
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="mt-2 p-3 rounded-xl bg-primary/5 border border-primary/10 text-[10px] text-muted-foreground flex gap-2">
+                    <CheckCircle className="h-3 w-3 text-primary shrink-0" />
+                    <span>Requer configuração de <code>GOOGLE_CLIENT_ID</code> e <code>GOOGLE_CLIENT_SECRET</code> no servidor (`.env`) para funcionar corretamente. O cron pode ser chamado automaticamente via GET na rota <code>/api/email/check</code> usando o header Authorization.</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </SectionCard>
         )}

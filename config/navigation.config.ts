@@ -7,6 +7,7 @@ import {
   UserList,
   ChartBar,
   Gear,
+  EnvelopeSimple,
   type IconProps
 } from "@phosphor-icons/react";
 import React from "react";
@@ -60,6 +61,12 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     href: "/relatorios",
     icon: ChartBar,
     description: "Estatísticas e relatórios",
+  },
+  {
+    title: "E-mails Teste",
+    href: "/emails-teste",
+    icon: EnvelopeSimple,
+    description: "Visualizar e-mails processados via IMAP",
   },
   {
     title: "Configurações",

@@ -1,7 +1,7 @@
 import React from "react";
 import { Metadata } from "next";
 import { PortalHero } from "@/components/layout/PortalHero";
-import { TicketsManagementClient } from "@/modules/tickets/TicketsManagementClient";
+import TicketsManagementClient from "@/modules/tickets/TicketsManagementClient";
 
 export const metadata: Metadata = {
   title: "Meus Chamados - CG Construções HelpDesk",

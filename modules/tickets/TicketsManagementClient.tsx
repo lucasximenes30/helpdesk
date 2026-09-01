@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { DataTable, Column } from "@/components/common/DataTable";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,8 @@ import {
 } from "@phosphor-icons/react";
 import { TicketModal } from "./TicketModal";
 import { AssignTechnicianModal, ChangeStatusModal } from "./QuickActionModals";
+import { useAuth } from "@/providers/auth-provider";
+import { toast } from "sonner";
 import { MonthYearSelector, getCurrentMonthYear } from "@/components/common/MonthYearSelector";
 import { ManagerialDashboard } from "@/components/reports/ManagerialDashboard";
 import { CsvImportWizard } from "../import/CsvImportWizard";
@@ -59,6 +61,7 @@ export interface TicketRow {
   sector: { id: string; name: string };
   technician?: { id: string; name: string; email: string; avatar?: string | null } | null;
   service: { id: string; name: string; category?: string | null };
+  hasUnreadReply?: boolean;
   _count?: { comments: number; history: number };
 }
 
@@ -80,11 +83,27 @@ const itemVariants: Variants = {
   }
 };
 
-export function TicketsManagementClient() {
+export interface TicketsManagementClientProps {
+  initialTickets?: TicketRow[];
+  initialTotal?: number;
+  initialPage?: number;
+  initialLimit?: number;
+  isArchived?: boolean;
+}
+
+export default function TicketsManagementClient({
+  initialTickets,
+  initialTotal,
+  initialPage,
+  initialLimit,
+  isArchived: defaultIsArchived = false,
+}: TicketsManagementClientProps) {
+  const { user } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("query") || "";
   
-  const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [tickets, setTickets] = useState<TicketRow[]>(initialTickets || []);
   const [loading, setLoading] = useState(true);
 
   const [sectors, setSectors] = useState<Array<{ id: string; name: string }>>([]);
@@ -98,21 +117,22 @@ export function TicketsManagementClient() {
   const [serviceFilter, setServiceFilter] = useState<string>("ALL");
   const [technicianFilter, setTechnicianFilter] = useState<string>("ALL");
   const [originFilter, setOriginFilter] = useState<string>("ALL");
-  const [isArchived, setIsArchived] = useState(false);
+  const [isArchived, setIsArchived] = useState(defaultIsArchived);
   const [monthYear, setMonthYear] = useState<string>(getCurrentMonthYear());
   const [sortBy, setSortBy] = useState<"ticketDate" | "totalTimeMinutes" | "requester" | "service">("ticketDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [page, setPage] = useState(initialPage || 1);
+  const [limit, setLimit] = useState(initialLimit || 10);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
+  const [totalItems, setTotalItems] = useState(initialTotal || 0);
   const [openCount, setOpenCount] = useState(0);
   const [resolvedCount, setResolvedCount] = useState(0);
   const [waitingCount, setWaitingCount] = useState(0);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [ticketModalInitialStatus, setTicketModalInitialStatus] = useState<string | undefined>(undefined);
 
   const [assignTechModalOpen, setAssignTechModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -236,6 +256,12 @@ export function TicketsManagementClient() {
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse" /> Aberto
           </Badge>
         );
+      case "EM_ATENDIMENTO":
+        return (
+          <Badge className="bg-transparent text-indigo-500 border-indigo-500/20 hover:bg-indigo-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-1.5 animate-pulse" /> Em Atendimento
+          </Badge>
+        );
       case "RESOLVIDO":
         return (
           <Badge className="bg-transparent text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
@@ -245,13 +271,19 @@ export function TicketsManagementClient() {
       case "AGUARDANDO_USUARIO":
         return (
           <Badge className="bg-transparent text-blue-500 border-blue-500/20 hover:bg-blue-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5" /> Aguardando
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5" /> Aguardando Cliente
           </Badge>
         );
       case "AGUARDANDO_PECA":
         return (
           <Badge className="bg-transparent text-purple-500 border-purple-500/20 hover:bg-purple-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mr-1.5" /> Agendado
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mr-1.5" /> Aguardando Peça
+          </Badge>
+        );
+      case "CANCELADO":
+        return (
+          <Badge className="bg-transparent text-zinc-500 border-zinc-500/20 hover:bg-zinc-500/10 text-[11px] px-2 py-0.5 font-medium shadow-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 mr-1.5" /> Cancelado
           </Badge>
         );
       default:
@@ -268,14 +300,27 @@ export function TicketsManagementClient() {
         body: JSON.stringify({ technicianId }),
       });
       if (!res.ok) throw new Error("Erro ao atribuir técnico");
+      toast.success("Técnico atribuído com sucesso!");
       fetchTickets();
     } catch (err: any) {
-      alert(err.message || "Erro ao atribuir técnico");
+      toast.error(err.message || "Erro ao atribuir técnico");
     }
   }
 
   async function handleSaveStatus(newStatus: string) {
     if (!activeTicket) return;
+    
+    if (newStatus === "RESOLVIDO") {
+      setStatusModalOpen(false);
+      setSelectedTicketId(activeTicket.id);
+      setTicketModalInitialStatus("RESOLVIDO");
+      setTimeout(() => {
+        setModalOpen(true);
+      }, 300);
+      toast.info("Por favor, preencha a solução do chamado para concluí-lo.");
+      return;
+    }
+
     try {
       const res = await fetch(`/api/tickets/${activeTicket.id}`, {
         method: "PUT",
@@ -283,9 +328,10 @@ export function TicketsManagementClient() {
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error("Erro ao alterar status");
+      toast.success("Status atualizado com sucesso!");
       fetchTickets();
     } catch (err: any) {
-      alert(err.message || "Erro ao alterar status");
+      toast.error(err.message || "Erro ao alterar status");
     }
   }
 
@@ -293,15 +339,14 @@ export function TicketsManagementClient() {
     if (!confirmArchive) return;
     try {
       const res = await fetch(`/api/tickets/${confirmArchive.id}/archive`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isArchived: !confirmArchive.isArchived }),
+        method: "PUT",
       });
       if (!res.ok) throw new Error("Erro ao arquivar chamado");
+      toast.success(confirmArchive.isArchived ? "Chamado restaurado!" : "Chamado arquivado!");
       setConfirmArchive(null);
       fetchTickets();
     } catch (err: any) {
-      alert(err.message || "Erro ao arquivar chamado");
+      toast.error(err.message || "Erro ao arquivar chamado");
     }
   }
 
@@ -312,10 +357,11 @@ export function TicketsManagementClient() {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Erro ao excluir chamado");
+      toast.success("Chamado excluído com sucesso!");
       setConfirmDelete(null);
       fetchTickets();
     } catch (err: any) {
-      alert(err.message || "Erro ao excluir chamado");
+      toast.error(err.message || "Erro ao excluir chamado");
     }
   }
 
@@ -333,7 +379,7 @@ export function TicketsManagementClient() {
       setManagerialDashboardOpen(true);
     } catch (error) {
       console.error("Erro ao buscar dados para o relatório:", error);
-      alert("Erro ao buscar dados para o relatório.");
+      toast.error("Erro ao buscar dados para o relatório.");
     } finally {
       setExportingPdf(false);
     }
@@ -341,13 +387,21 @@ export function TicketsManagementClient() {
 
   const columns: Column<TicketRow>[] = [
     {
-      label: "Número",
+      label: "TICKET",
       key: "ticketNumber",
       className: "w-20 text-center font-mono",
       render: (item) => (
-        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[11px] font-mono text-muted-foreground border border-border/50 bg-transparent">
-          {item.ticketNumber}{item.ticketMonthYear ? `/${item.ticketMonthYear.split('-')[0]}` : ""}
-        </span>
+        <div className="flex flex-col items-center justify-center relative w-fit mx-auto">
+          {item.hasUnreadReply && (
+            <span className="absolute -top-1 -right-2.5 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-danger" title="Nova resposta do cliente"></span>
+            </span>
+          )}
+          <span className="font-mono text-sm text-foreground/80 font-semibold tracking-wide">
+            #{item.ticketNumber}
+          </span>
+        </div>
       ),
     },
     {
@@ -470,14 +524,45 @@ export function TicketsManagementClient() {
     {
       label: "Ações",
       key: "id",
-      className: "w-16 text-right",
+      className: "w-32 text-right",
       render: (item) => (
-        <div className="flex items-center justify-end gap-1.5">
+        <div className="flex items-center justify-end gap-1">
+          {!item.technician && user?.id && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  const res = await fetch(`/api/tickets/${item.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ technicianId: user.id, status: "EM_ATENDIMENTO" }),
+                  });
+                  if (!res.ok) throw new Error("Erro");
+                  toast.success("Chamado atribuído a você! Atualize as informações se necessário.");
+                  fetchTickets();
+                  setSelectedTicketId(item.id);
+                  setTimeout(() => {
+                    setModalOpen(true);
+                  }, 300);
+                } catch {
+                  toast.error("Falha ao assumir chamado.");
+                }
+              }}
+              className="h-8 px-2 text-xs border-primary text-primary hover:bg-primary/10 gap-1.5 rounded-full"
+              title="Assumir Chamado"
+            >
+              <UserCircleCheck weight="bold" className="w-3.5 h-3.5" />
+              Assumir
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setSelectedTicketId(item.id);
               setModalOpen(true);
             }}
@@ -489,7 +574,8 @@ export function TicketsManagementClient() {
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-warning hover:text-warning hover:bg-warning/10 rounded-full transition-colors"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setActiveTicket(item);
               setStatusModalOpen(true);
             }}
@@ -501,7 +587,10 @@ export function TicketsManagementClient() {
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-danger hover:text-danger hover:bg-danger/10 rounded-full transition-colors"
-            onClick={() => setConfirmDelete(item)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmDelete(item);
+            }}
             title="Excluir"
           >
             <X className="h-4 w-4" />
@@ -718,6 +807,24 @@ export function TicketsManagementClient() {
           isLoading={loading}
           emptyTitle="Nenhum chamado encontrado"
           emptyDescription="Cadastre um novo chamado para substituir a planilha de TI ou limpe os filtros selecionados."
+          onRowClick={async (item) => {
+            setSelectedTicketId(item.id);
+            setModalOpen(true);
+            if (item.hasUnreadReply) {
+              // Limpa otimisticamente
+              setTickets(tickets.map(t => t.id === item.id ? { ...t, hasUnreadReply: false } : t));
+              // API call para atualizar no banco
+              try {
+                await fetch(`/api/tickets/${item.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ hasUnreadReply: false })
+                });
+              } catch (e) {
+                console.error("Erro ao limpar notificação de resposta:", e);
+              }
+            }
+          }}
         />
         {/* Paginação */}
         {totalPages > 1 && (
@@ -754,12 +861,16 @@ export function TicketsManagementClient() {
       {/* Modais do Módulo */}
       <TicketModal
         open={modalOpen}
-        onOpenChange={setModalOpen}
+        onOpenChange={(v) => {
+          setModalOpen(v);
+          if (!v) setTicketModalInitialStatus(undefined);
+        }}
         ticketId={selectedTicketId}
         sectors={sectors}
         services={services}
         technicians={technicians}
         onSaved={fetchTickets}
+        initialStatus={ticketModalInitialStatus}
       />
 
       <AssignTechnicianModal

@@ -1,7 +1,7 @@
 import React from "react";
 import { Metadata } from "next";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { TicketsManagementClient } from "@/modules/tickets/TicketsManagementClient";
+import TicketsManagementClient from "@/modules/tickets/TicketsManagementClient";
 
 export const metadata: Metadata = {
   title: "Gestão de Chamados - CG Construções HelpDesk",

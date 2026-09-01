@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ['imapflow', 'mailparser', 'googleapis']
 };
 
 export default nextConfig;
