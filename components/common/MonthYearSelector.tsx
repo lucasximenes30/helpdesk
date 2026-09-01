@@ -22,7 +22,7 @@ const MONTH_NAMES = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-function getCurrentMonthYear(): string {
+export function getCurrentMonthYear(): string {
   const now = new Date();
   return `${String(now.getMonth() + 1).padStart(2, "0")}-${now.getFullYear()}`;
 }
@@ -144,7 +144,7 @@ export function MonthYearSelector({
                   : "text-foreground hover:bg-muted/50"
               }`}
             >
-              <span>📅 Ano Completo</span>
+              <span>Ano Completo</span>
               {value === "ALL" && (
                 <span className="text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
                   ATIVO

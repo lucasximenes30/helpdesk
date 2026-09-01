@@ -22,6 +22,7 @@ import {
   FileSpreadsheet,
   Printer,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import {
@@ -33,15 +34,21 @@ import {
   DashboardWidgetConfig,
   INITIAL_WIDGETS_CONFIG,
 } from "./WidgetConfigModal";
-import { MonthYearSelector } from "@/components/common/MonthYearSelector";
+import { MonthYearSelector, getCurrentMonthYear } from "@/components/common/MonthYearSelector";
 import { SectorServiceWidget } from "@/components/dashboard/SectorServiceWidget";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const STORAGE_KEY = "cg_helpdesk_dashboard_widgets_v1";
 
 export function DashboardClient() {
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<string>("LAST_30_DAYS");
-  const [monthYear, setMonthYear] = useState<string>("");
+  const [period, setPeriod] = useState<string>("");
+  const [monthYear, setMonthYear] = useState<string>(getCurrentMonthYear());
   const [stats, setStats] = useState<any>(null);
   const [widgets, setWidgets] = useState<DashboardWidgetConfig[]>(INITIAL_WIDGETS_CONFIG);
   const [configModalOpen, setConfigModalOpen] = useState(false);
@@ -625,30 +632,46 @@ export function DashboardClient() {
 
                   {/* Barra de Ferramentas por Widget (Oculta na Impressão PDF) */}
                   <div className="flex items-center gap-1.5 print:hidden">
-                    <select
-                      value={widget.currentType}
-                      onChange={(e) => {
-                        const next = widgets.map((w) =>
-                          w.id === widget.id
-                            ? { ...w, currentType: e.target.value as ChartType }
-                            : w
-                        );
-                        saveWidgets(next);
-                      }}
-                      className="h-7 px-2 text-[11px] font-semibold rounded border border-border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary"
-                      title="Alternar tipo de visualização do gráfico"
-                    >
-                      {widget.allowedTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type === "BAR" && "Barra"}
-                          {type === "PIE" && "Pizza"}
-                          {type === "DONUT" && "Rosca"}
-                          {type === "LINE" && "Linha"}
-                          {type === "AREA" && "Área"}
-                          {type === "RADAR" && "Radar"}
-                        </option>
-                      ))}
-                    </select>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] font-semibold rounded border-border bg-muted/30 hover:bg-muted/50"
+                          title="Alternar tipo de visualização do gráfico"
+                        >
+                          {widget.currentType === "BAR" && "Barra"}
+                          {widget.currentType === "PIE" && "Pizza"}
+                          {widget.currentType === "DONUT" && "Rosca"}
+                          {widget.currentType === "LINE" && "Linha"}
+                          {widget.currentType === "AREA" && "Área"}
+                          {widget.currentType === "RADAR" && "Radar"}
+                          <ChevronDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {widget.allowedTypes.map((type) => (
+                          <DropdownMenuItem
+                            key={type}
+                            onClick={() => {
+                              const next = widgets.map((w) =>
+                                w.id === widget.id
+                                  ? { ...w, currentType: type as ChartType }
+                                  : w
+                              );
+                              saveWidgets(next);
+                            }}
+                          >
+                            {type === "BAR" && "Barra"}
+                            {type === "PIE" && "Pizza"}
+                            {type === "DONUT" && "Rosca"}
+                            {type === "LINE" && "Linha"}
+                            {type === "AREA" && "Área"}
+                            {type === "RADAR" && "Radar"}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
 
                     <Button
                       variant="ghost"

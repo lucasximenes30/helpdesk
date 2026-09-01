@@ -21,6 +21,7 @@ import {
   DownloadSimple,
   Funnel,
   ChartBar,
+  CaretDown,
 } from "@phosphor-icons/react";
 import { DashboardSkeleton } from "@/modules/dashboard/DashboardSkeleton";
 import { ChartWidget, ChartType } from "@/modules/dashboard/charts/ChartWidgets";
@@ -36,7 +37,13 @@ import {
   ReportMode,
 } from "./ExportPDFModal";
 import { generateProfessionalPDF } from "./generateProfessionalPDF";
-import { MonthYearSelector } from "@/components/common/MonthYearSelector";
+import { MonthYearSelector, getCurrentMonthYear } from "@/components/common/MonthYearSelector";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const STORAGE_KEY = "cg_helpdesk_dashboard_widgets_v1";
 
@@ -60,8 +67,8 @@ const itemVariants: Variants = {
 
 export function ReportsClient() {
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<string>("LAST_30_DAYS");
-  const [monthYear, setMonthYear] = useState<string>("");
+  const [period, setPeriod] = useState<string>("");
+  const [monthYear, setMonthYear] = useState<string>(getCurrentMonthYear());
   const [reportMode, setReportMode] = useState<ReportMode>("EXECUTIVO");
   const [stats, setStats] = useState<any>(null);
   const [widgets, setWidgets] = useState<DashboardWidgetConfig[]>(
@@ -644,33 +651,46 @@ export function ReportsClient() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <select
-                      value={widget.currentType}
-                      onChange={(e) => {
-                        const next = widgets.map((w) =>
-                          w.id === widget.id
-                            ? {
-                                ...w,
-                                currentType: e.target.value as ChartType,
-                              }
-                            : w
-                        );
-                        saveWidgets(next);
-                      }}
-                      className="h-8 px-3 text-xs font-semibold rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors focus:outline-none focus:ring-1 focus:ring-foreground"
-                      title="Alternar visualização"
-                    >
-                      {widget.allowedTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type === "BAR" && "Barra"}
-                          {type === "PIE" && "Pizza"}
-                          {type === "DONUT" && "Rosca"}
-                          {type === "LINE" && "Linha"}
-                          {type === "AREA" && "Área"}
-                          {type === "RADAR" && "Radar"}
-                        </option>
-                      ))}
-                    </select>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3 text-xs font-semibold rounded-lg bg-background hover:bg-muted/50"
+                          title="Alternar visualização"
+                        >
+                          {widget.currentType === "BAR" && "Barra"}
+                          {widget.currentType === "PIE" && "Pizza"}
+                          {widget.currentType === "DONUT" && "Rosca"}
+                          {widget.currentType === "LINE" && "Linha"}
+                          {widget.currentType === "AREA" && "Área"}
+                          {widget.currentType === "RADAR" && "Radar"}
+                          <CaretDown className="ml-1.5 h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {widget.allowedTypes.map((type) => (
+                          <DropdownMenuItem
+                            key={type}
+                            onClick={() => {
+                              const next = widgets.map((w) =>
+                                w.id === widget.id
+                                  ? { ...w, currentType: type as ChartType }
+                                  : w
+                              );
+                              saveWidgets(next);
+                            }}
+                          >
+                            {type === "BAR" && "Barra"}
+                            {type === "PIE" && "Pizza"}
+                            {type === "DONUT" && "Rosca"}
+                            {type === "LINE" && "Linha"}
+                            {type === "AREA" && "Área"}
+                            {type === "RADAR" && "Radar"}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
 
                     <Button
                       variant="ghost"

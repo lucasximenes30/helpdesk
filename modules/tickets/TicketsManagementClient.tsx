@@ -36,7 +36,7 @@ import {
 } from "@phosphor-icons/react";
 import { TicketModal } from "./TicketModal";
 import { AssignTechnicianModal, ChangeStatusModal } from "./QuickActionModals";
-import { MonthYearSelector } from "@/components/common/MonthYearSelector";
+import { MonthYearSelector, getCurrentMonthYear } from "@/components/common/MonthYearSelector";
 import { ManagerialDashboard } from "@/components/reports/ManagerialDashboard";
 import { CsvImportWizard } from "../import/CsvImportWizard";
 
@@ -99,7 +99,7 @@ export function TicketsManagementClient() {
   const [technicianFilter, setTechnicianFilter] = useState<string>("ALL");
   const [originFilter, setOriginFilter] = useState<string>("ALL");
   const [isArchived, setIsArchived] = useState(false);
-  const [monthYear, setMonthYear] = useState<string>("");
+  const [monthYear, setMonthYear] = useState<string>(getCurrentMonthYear());
   const [sortBy, setSortBy] = useState<"ticketDate" | "totalTimeMinutes" | "requester" | "service">("ticketDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 

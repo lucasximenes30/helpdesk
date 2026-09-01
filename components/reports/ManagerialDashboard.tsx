@@ -198,7 +198,7 @@ export function ManagerialDashboard({ tickets, onClose }: ManagerialDashboardPro
             {/* 3. Chamados por Serviço (Horizontal) */}
             <div className="border border-slate-200 p-5 rounded-lg bg-white shadow-sm">
               <h3 className="text-lg font-serif text-slate-700 mb-4 border-b pb-2">Número de Chamados por Serviço</h3>
-              <div className="h-[230px] w-full">
+              <div style={{ height: Math.max(230, ticketsByService.length * 22) }} className="w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={ticketsByService} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
                     <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#475569" }} />
