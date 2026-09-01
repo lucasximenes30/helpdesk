@@ -63,6 +63,11 @@ export function CorporateSettingsClient() {
   const [resetConfirmText, setResetConfirmText] = useState("");
   const [resetting, setResetting] = useState(false);
 
+  const [testEmail, setTestEmail] = useState("");
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testEmailSuccess, setTestEmailSuccess] = useState("");
+  const [testEmailError, setTestEmailError] = useState("");
+
   const [form, setForm] = useState<CorporateSettingsDTO>({
     companyId: "cg-construcoes-001",
     systemName: "CG Construções HelpDesk Pro",
@@ -213,6 +218,32 @@ export function CorporateSettingsClient() {
     { id: "INTEGRACOES", label: "Integrações", icon: Graph },
     { id: "FERRAMENTAS", label: "Ferramentas", icon: Wrench },
   ] as const;
+
+  const handleTestEmail = async () => {
+    if (!testEmail) {
+      setTestEmailError("Informe um e-mail válido.");
+      return;
+    }
+    setTestingEmail(true);
+    setTestEmailSuccess("");
+    setTestEmailError("");
+    try {
+      const res = await fetch("/api/settings/email/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: testEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao enviar e-mail");
+      }
+      setTestEmailSuccess(data.message || "E-mail de teste enviado com sucesso!");
+    } catch (e: any) {
+      setTestEmailError(e.message || "Falha ao enviar e-mail.");
+    } finally {
+      setTestingEmail(false);
+    }
+  };
 
   const handleResetDatabase = async () => {
     if (resetConfirmText !== "RESETAR") return;
@@ -986,31 +1017,49 @@ export function CorporateSettingsClient() {
                     </div>
                     <div>
                       <p className="text-sm font-display font-bold text-foreground">
-                        Servidor SMTP / E-mail
+                        Integração SendGrid (E-mail)
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Envio de relatórios PDF e comprovantes
+                        Notificações automáticas ao criar chamados e mais
                       </p>
                     </div>
                   </div>
                   <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 rounded-full px-3">
-                    Ativo (TLS 587)
+                    Ativo (API Key)
                   </Badge>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <label className="text-[10px] font-display font-bold text-muted-foreground uppercase tracking-wider">
-                    Host de Envio SMTP
+                    E-mail de Teste
                   </label>
                   <div className="flex items-center gap-2">
                     <Input
-                      defaultValue="smtp.cgconstrucoes.com.br"
-                      readOnly
-                      className="text-[11px] font-mono h-10 rounded-xl bg-background border-border/60"
+                      type="email"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                      placeholder="seu.email@exemplo.com"
+                      className="text-[11px] font-mono h-10 rounded-xl bg-background border-border/60 flex-1"
                     />
-                    <Button variant="outline" size="sm" className="h-10 rounded-xl shrink-0">
-                      Disparar Teste
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleTestEmail}
+                      disabled={testingEmail || !testEmail}
+                      className="h-10 rounded-xl shrink-0"
+                    >
+                      {testingEmail ? "Enviando..." : "Disparar Teste"}
                     </Button>
                   </div>
+                  {testEmailSuccess && (
+                    <p className="text-[11px] text-success font-medium flex items-center gap-1 mt-1">
+                      <CheckCircle weight="fill" className="h-4 w-4" /> {testEmailSuccess}
+                    </p>
+                  )}
+                  {testEmailError && (
+                    <p className="text-[11px] text-danger font-medium flex items-center gap-1 mt-1">
+                      <WarningCircle weight="fill" className="h-4 w-4" /> {testEmailError}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
