@@ -25,6 +25,10 @@ export function AuthProvider({
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    setUser(initialUser);
+  }, [initialUser]);
+
   const refresh = async () => {
     try {
       setLoading(true);
