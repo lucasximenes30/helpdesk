@@ -72,6 +72,8 @@ export function TicketModal({
   // Autocomplete Solicitante
   const [suggestions, setSuggestions] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingRequesters, setIsLoadingRequesters] = useState(false);
+  const [hasLoadedRequesters, setHasLoadedRequesters] = useState(false);
 
   // Timeline & Comentários
   const [historyEvents, setHistoryEvents] = useState<any[]>([]);
@@ -101,6 +103,7 @@ export function TicketModal({
       setTotalTimeMinutes(null);
       setSuggestions([]);
       setShowSuggestions(false);
+      setHasLoadedRequesters(false);
       setHistoryEvents([]);
       setComments([]);
       return;
@@ -150,13 +153,30 @@ export function TicketModal({
   }
 
   // Handle requester autocomplete
+  async function handleLoadAllRequesters() {
+    if (hasLoadedRequesters) return;
+    setIsLoadingRequesters(true);
+    try {
+      const res = await fetch(`/api/requesters/suggest?q=`);
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data.suggestions || []);
+        setHasLoadedRequesters(true);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar solicitantes:", err);
+    } finally {
+      setIsLoadingRequesters(false);
+    }
+  }
+
   async function handleRequesterChange(val: string) {
     setRequesterName(val);
     if (requesterId && val !== requesterName) {
       setRequesterId(null); // Desvincula se alterou
     }
 
-    if (val.trim().length >= 2) {
+    if (!hasLoadedRequesters && val.trim().length >= 2) {
       try {
         const res = await fetch(`/api/requesters/suggest?q=${encodeURIComponent(val)}`);
         if (res.ok) {
@@ -167,9 +187,6 @@ export function TicketModal({
       } catch (err) {
         console.error("Erro ao buscar solicitantes:", err);
       }
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
     }
   }
 
@@ -303,7 +320,7 @@ export function TicketModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[780px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[780px] max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
@@ -426,6 +443,8 @@ export function TicketModal({
                         setRequesterId(null);
                       }}
                       createLabelPrefix="+ Criar"
+                      isLoading={isLoadingRequesters}
+                      onOpen={handleLoadAllRequesters}
                     />
                   </div>
 
@@ -569,19 +588,19 @@ export function TicketModal({
                       <label className="text-xs font-medium text-muted-foreground block mb-1">
                         Início
                       </label>
-                      <div className="flex items-center gap-2 w-full bg-background border border-input rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-primary transition-all">
+                      <div className="flex items-center gap-1 w-full bg-background border border-input rounded-md px-2 py-2 focus-within:ring-2 focus-within:ring-primary transition-all">
                         <input
                           type="date"
                           value={startTime ? startTime.split('T')[0] : ''}
                           onChange={(e) => setStartTime(`${e.target.value}T${startTime ? startTime.split('T')[1] : '00:00'}`)}
-                          className="bg-transparent outline-none text-sm w-[120px]"
+                          className="bg-transparent outline-none text-sm w-[115px]"
                         />
                         <span className="text-muted-foreground text-xs font-medium">às</span>
                         <input
                           type="time"
                           value={startTime ? startTime.split('T')[1] : ''}
                           onChange={(e) => setStartTime(`${startTime ? startTime.split('T')[0] : new Date().toISOString().split('T')[0]}T${e.target.value}`)}
-                          className="bg-transparent outline-none text-sm flex-1"
+                          className="bg-transparent outline-none text-sm min-w-0 flex-1"
                         />
                       </div>
                     </div>
@@ -589,19 +608,19 @@ export function TicketModal({
                       <label className="text-xs font-medium text-muted-foreground block mb-1">
                         Fim
                       </label>
-                      <div className="flex items-center gap-2 w-full bg-background border border-input rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-primary transition-all">
+                      <div className="flex items-center gap-1 w-full bg-background border border-input rounded-md px-2 py-2 focus-within:ring-2 focus-within:ring-primary transition-all">
                         <input
                           type="date"
                           value={endTime ? endTime.split('T')[0] : ''}
                           onChange={(e) => setEndTime(`${e.target.value}T${endTime ? (endTime.split('T')[1] || '00:00') : '00:00'}`)}
-                          className="bg-transparent outline-none text-sm w-[120px]"
+                          className="bg-transparent outline-none text-sm w-[115px]"
                         />
                         <span className="text-muted-foreground text-xs font-medium">às</span>
                         <input
                           type="time"
                           value={endTime ? endTime.split('T')[1] : ''}
                           onChange={(e) => setEndTime(`${endTime ? endTime.split('T')[0] : new Date().toISOString().split('T')[0]}T${e.target.value}`)}
-                          className="bg-transparent outline-none text-sm flex-1"
+                          className="bg-transparent outline-none text-sm min-w-0 flex-1"
                         />
                       </div>
                     </div>

@@ -28,6 +28,8 @@ export interface ComboboxProps {
   createLabelPrefix?: string;
   disabled?: boolean;
   className?: string;
+  isLoading?: boolean;
+  onOpen?: () => void;
 }
 
 export function Combobox({
@@ -43,6 +45,8 @@ export function Combobox({
   createLabelPrefix = "+ Criar",
   disabled = false,
   className,
+  isLoading = false,
+  onOpen,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -78,6 +82,7 @@ export function Combobox({
 
   useEffect(() => {
     if (open) {
+      if (onOpen) onOpen();
       setQuery("");
       setActiveIndex(0);
       setTimeout(() => {
@@ -214,13 +219,20 @@ export function Combobox({
             ref={listRef}
             className="max-h-60 overflow-y-auto p-1 space-y-0.5 scrollbar-thin"
           >
-            {filteredOptions.length === 0 && !showCreateOption && (
+            {isLoading && (
+              <div className="py-6 flex items-center justify-center text-xs text-muted-foreground">
+                <span className="w-4 h-4 mr-2 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                Carregando...
+              </div>
+            )}
+
+            {!isLoading && filteredOptions.length === 0 && !showCreateOption && (
               <div className="py-6 text-center text-xs text-muted-foreground">
                 {emptyText}
               </div>
             )}
 
-            {filteredOptions.map((opt, idx) => {
+            {!isLoading && filteredOptions.map((opt, idx) => {
               const isSelected = opt.id === value;
               const isActive = idx === activeIndex;
               return (

@@ -9,7 +9,7 @@ export async function PATCH(
 ) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "ADMIN" && session.role !== "TI")) {
+    if (!session || session.role !== "ADMIN") {
       return NextResponse.json({ error: "Permissão insuficiente" }, { status: 403 });
     }
 

@@ -6,8 +6,8 @@ import { getUsersPaginated, createUser } from "@/services/user/user.service";
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    if (!session || session.role !== "ADMIN") {
+      return NextResponse.json({ error: "Permissão insuficiente" }, { status: 403 });
     }
 
     const { searchParams } = request.nextUrl;
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "ADMIN" && session.role !== "TI")) {
+    if (!session || session.role !== "ADMIN") {
       return NextResponse.json({ error: "Permissão insuficiente" }, { status: 403 });
     }
 

@@ -131,7 +131,7 @@ export function TicketsManagementClient() {
       const [secRes, srvRes, techRes] = await Promise.all([
         fetch("/api/sectors"),
         fetch("/api/services"),
-        fetch("/api/users?role=ADMIN_OR_TI&limit=100&includeInactive=true"),
+        fetch("/api/users?role=ADMIN_OR_TI&limit=100"),
       ]);
 
       if (secRes.ok) {

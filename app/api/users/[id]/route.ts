@@ -13,8 +13,8 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    if (!session || session.role !== "ADMIN") {
+      return NextResponse.json({ error: "Permissão insuficiente" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -39,7 +39,7 @@ export async function PUT(
 ) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "ADMIN" && session.role !== "TI")) {
+    if (!session || session.role !== "ADMIN") {
       return NextResponse.json({ error: "Permissão insuficiente" }, { status: 403 });
     }
 
