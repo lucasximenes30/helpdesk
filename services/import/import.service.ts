@@ -384,7 +384,7 @@ async function resolveTechnician(
 
   let existing = await prisma.user.findFirst({
     where: {
-      name: { equals: name.trim(), mode: "insensitive" },
+      name: { contains: name.trim(), mode: "insensitive" },
       role: { in: ["ADMIN", "TI"] },
     },
   });
@@ -661,6 +661,7 @@ export async function executeCsvImport(
                 sectorId: item.sectorId,
                 serviceId: item.serviceId,
                 problem: item.row.problema || "Importado do CSV",
+                startTime: item.startTime,
               },
             });
 

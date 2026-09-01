@@ -628,7 +628,7 @@ export function TicketsManagementClient() {
         </div>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="glass-card rounded-[2rem] p-6 flex flex-col gap-4">
+      <motion.div variants={itemVariants} className="relative z-50 glass-card rounded-[2rem] p-6 flex flex-col gap-4">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-[350px]">
             <MagnifyingGlass className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
