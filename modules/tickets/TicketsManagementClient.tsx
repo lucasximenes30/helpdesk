@@ -397,7 +397,7 @@ export default function TicketsManagementClient({
     {
       label: "Solicitante & Setor",
       key: "requester",
-      className: "max-w-[220px]",
+      className: "w-48",
       render: (item) => (
         <div className="flex flex-col">
           <span className="font-semibold text-foreground text-xs truncate">
@@ -419,7 +419,7 @@ export default function TicketsManagementClient({
     {
       label: "Serviço & Problema",
       key: "problem",
-      className: "max-w-[280px]",
+      className: "w-auto px-4",
       render: (item) => (
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5">
@@ -800,6 +800,7 @@ export default function TicketsManagementClient({
       {/* Tabela de Chamados */}
       <motion.div variants={itemVariants} className="glass-card rounded-[2rem] p-2 overflow-hidden shadow-sm">
         <DataTable
+          className="table-fixed"
           columns={columns}
           data={tickets}
           isLoading={loading}
