@@ -309,17 +309,6 @@ export default function TicketsManagementClient({
 
   async function handleSaveStatus(newStatus: string) {
     if (!activeTicket) return;
-    
-    if (newStatus === "RESOLVIDO") {
-      setStatusModalOpen(false);
-      setSelectedTicketId(activeTicket.id);
-      setTicketModalInitialStatus("RESOLVIDO");
-      setTimeout(() => {
-        setModalOpen(true);
-      }, 300);
-      toast.info("Por favor, preencha a solução do chamado para concluí-lo.");
-      return;
-    }
 
     try {
       const res = await fetch(`/api/tickets/${activeTicket.id}`, {

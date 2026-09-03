@@ -113,7 +113,7 @@ async function sendHtmlEmail(to: string, subject: string, html: string, inReplyT
   }
 
   if (inReplyToMessageId) {
-    // Para agrupar no GMail / Outlook
+    // Para agrupar no GMail / Outlookk
     msg.headers = {
       'In-Reply-To': inReplyToMessageId,
       'References': inReplyToMessageId,

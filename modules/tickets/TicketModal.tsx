@@ -117,6 +117,7 @@ export function TicketModal({
       setStartTime(new Date().toISOString().slice(0, 16));
       setEndTime("");
       setObservations("");
+      setSolutionText("");
       setTotalTimeMinutes(null);
       setSuggestions([]);
       setShowSuggestions(false);
@@ -244,11 +245,6 @@ export function TicketModal({
     e.preventDefault();
     if (!requesterName || !sectorId || !serviceId || !problem) {
       alert("Por favor, preencha Solicitante, Setor, Serviço e Problema.");
-      return;
-    }
-    
-    if (status === "RESOLVIDO" && !solutionText.trim()) {
-      alert("É necessário informar a solução para concluir o chamado");
       return;
     }
 
@@ -554,19 +550,18 @@ export function TicketModal({
                       <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
                         Status
                       </label>
-                      <Select value={status} onValueChange={(val) => { if (val) setStatus(val); }}>
-                        <SelectTrigger className="w-full h-9 text-xs">
-                          <SelectValue placeholder="Selecione o status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ABERTO">Aberto</SelectItem>
-                          <SelectItem value="EM_ATENDIMENTO">Em Atendimento</SelectItem>
-                          <SelectItem value="AGUARDANDO_TERCEIROS">Aguardando Terceiros</SelectItem>
-                          <SelectItem value="AGUARDANDO_USUARIO">Aguardando Usuário</SelectItem>
-                          <SelectItem value="RESOLVIDO">Resolvido (Concluir)</SelectItem>
-                          <SelectItem value="CANCELADO">Cancelado</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <select
+                        className="w-full h-9 px-2 text-xs rounded-md border border-input bg-background"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                      >
+                        <option value="ABERTO">Aberto</option>
+                        <option value="EM_ATENDIMENTO">Em Atendimento</option>
+                        <option value="AGUARDANDO_TERCEIROS">Aguardando Terceiros</option>
+                        <option value="AGUARDANDO_USUARIO">Aguardando Usuário</option>
+                        <option value="RESOLVIDO">Resolvido (Concluir)</option>
+                        <option value="CANCELADO">Cancelado</option>
+                      </select>
                     </div>
 
                     <div>
@@ -660,7 +655,7 @@ export function TicketModal({
                   {status === "RESOLVIDO" && (
                     <div className="pt-2 border-t border-border/50 animate-in fade-in slide-in-from-top-2 duration-300">
                       <Label htmlFor="solutionText" className="text-emerald-600 flex items-center gap-1.5 mb-1.5">
-                        Solução / Resolução do Chamado <span className="text-danger">*</span>
+                        Solução / Resolução do Chamado
                       </Label>
                       <Textarea
                         id="solutionText"
