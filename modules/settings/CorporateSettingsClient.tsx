@@ -63,6 +63,11 @@ export function CorporateSettingsClient() {
   const [resetConfirmText, setResetConfirmText] = useState("");
   const [resetting, setResetting] = useState(false);
 
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportType, setExportType] = useState("tickets");
+  const [exportMonth, setExportMonth] = useState("all");
+  const [exporting, setExporting] = useState(false);
+
   const [testEmail, setTestEmail] = useState("");
   const [testingEmail, setTestingEmail] = useState(false);
   const [testEmailSuccess, setTestEmailSuccess] = useState("");
@@ -243,6 +248,19 @@ export function CorporateSettingsClient() {
     } finally {
       setTestingEmail(false);
     }
+  };
+
+  const handleExportData = () => {
+    setExporting(true);
+    let url = `/api/export?type=${exportType}`;
+    if (exportType === "tickets" && exportMonth !== "all") {
+      url += `&month=${exportMonth}`;
+    }
+    window.location.href = url;
+    setTimeout(() => {
+      setExporting(false);
+      setExportModalOpen(false);
+    }, 1000);
   };
 
   const handleResetDatabase = async () => {
@@ -1198,6 +1216,32 @@ export function CorporateSettingsClient() {
             description="Importador inteligente de planilhas antigas e reinicialização segura de dados operacionais"
           >
             <div className="space-y-6">
+              {/* Exportar Dados (Backup) */}
+              <div className="glass-card rounded-[2rem] p-8 space-y-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-4 rounded-2xl bg-primary/10 text-primary shrink-0">
+                      <FloppyDisk weight="duotone" className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-display font-bold text-foreground">
+                        Exportar Dados (Backup CSV)
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
+                        Faça o backup dos seus chamados, lista de usuários, funcionários e serviços gerando uma planilha compatível com a nossa ferramenta de importação.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setExportModalOpen(true)}
+                    className="shrink-0 font-semibold shadow-md h-12 px-6 rounded-xl w-full md:w-auto transition-all hover:shadow-lg"
+                  >
+                    <FloppyDisk className="h-5 w-5 mr-2" />
+                    Exportar Backup
+                  </Button>
+                </div>
+              </div>
+
               {/* Importador Inteligente de CSV */}
               <div className="glass-card rounded-[2rem] p-8 space-y-4">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -1259,6 +1303,89 @@ export function CorporateSettingsClient() {
           </SectionCard>
         )}
       </div>
+
+      {/* MODAL DE EXPORTAÇÃO */}
+      {exportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md rounded-[2rem] border border-border bg-card p-8 shadow-2xl space-y-6"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-4 rounded-2xl bg-primary/10 text-primary">
+                <FloppyDisk weight="duotone" className="h-8 w-8" />
+              </div>
+              <div>
+                <h3 className="text-xl font-display font-bold text-foreground">
+                  Exportar Backup
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Selecione o que deseja exportar.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-display font-bold text-foreground uppercase tracking-widest block mb-2">
+                  Tipo de Exportação
+                </label>
+                <select
+                  value={exportType}
+                  onChange={(e) => setExportType(e.target.value)}
+                  className="w-full h-11 px-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="tickets">Chamados</option>
+                  <option value="requesters">Funcionários (Solicitantes)</option>
+                  <option value="users">Usuários (Técnicos)</option>
+                  <option value="services">Serviços</option>
+                  <option value="emails">E-mails Recebidos</option>
+                </select>
+              </div>
+              
+              {exportType === "tickets" && (
+                <div>
+                  <label className="text-xs font-display font-bold text-foreground uppercase tracking-widest block mb-2">
+                    Mês de Referência (Opcional)
+                  </label>
+                  <select
+                    value={exportMonth}
+                    onChange={(e) => setExportMonth(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="all">Todos os Meses</option>
+                    <option value="07-2026">Julho 2026</option>
+                    <option value="08-2026">Agosto 2026</option>
+                    <option value="09-2026">Setembro 2026</option>
+                    <option value="10-2026">Outubro 2026</option>
+                    <option value="11-2026">Novembro 2026</option>
+                    <option value="12-2026">Dezembro 2026</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-border/60">
+              <Button
+                variant="outline"
+                className="h-11 rounded-xl"
+                onClick={() => setExportModalOpen(false)}
+                disabled={exporting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleExportData}
+                disabled={exporting}
+                className="h-11 rounded-xl"
+              >
+                {exporting ? "Gerando..." : "Baixar CSV"}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* MODAL DO IMPORTADOR CSV */}
       <CsvImportWizard

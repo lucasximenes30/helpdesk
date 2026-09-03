@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppProviders } from "@/providers/app-providers";
 import { getSession } from "@/lib/auth";
 import { Toaster } from "sonner";
+import NextTopLoader from 'nextjs-toploader';
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -35,6 +36,7 @@ export default async function RootLayout({
       <body
         className={`${outfit.variable} ${spaceGrotesk.variable} ${jetBrainsMono.variable} min-h-screen bg-background font-sans antialiased`}
       >
+        <NextTopLoader color="hsl(var(--primary))" showSpinner={false} />
         <AppProviders initialUser={session}>{children}</AppProviders>
         <Toaster position="top-right" richColors />
       </body>

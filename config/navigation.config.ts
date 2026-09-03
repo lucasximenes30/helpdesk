@@ -63,8 +63,8 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     description: "Estatísticas e relatórios",
   },
   {
-    title: "E-mails Teste",
-    href: "/emails-teste",
+    title: "E-mails Recebidos",
+    href: "/emails-recebidos",
     icon: EnvelopeSimple,
     description: "Visualizar e-mails processados via IMAP",
   },

@@ -64,6 +64,7 @@ interface ImportResult {
 
 export function CsvImportWizard({ open, onClose, onImported }: CsvImportWizardProps) {
   const [step, setStep] = useState<WizardStep>(1);
+  const [importType, setImportType] = useState<"tickets" | "requesters" | "users" | "services" | "emails">("tickets");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -75,6 +76,7 @@ export function CsvImportWizard({ open, onClose, onImported }: CsvImportWizardPr
 
   const reset = useCallback(() => {
     setStep(1);
+    setImportType("tickets");
     setFile(null);
     setPreview(null);
     setResult(null);
@@ -117,6 +119,10 @@ export function CsvImportWizard({ open, onClose, onImported }: CsvImportWizardPr
 
   const handlePreview = async () => {
     if (!file) return;
+    if (importType !== "tickets") {
+      handleImport();
+      return;
+    }
     setLoading(true);
     setError(null);
     setProgressLabel("Lendo arquivo...");
@@ -160,7 +166,7 @@ export function CsvImportWizard({ open, onClose, onImported }: CsvImportWizardPr
     setStep(4);
 
     // Simulate progress stages
-    setProgressLabel("Validando dados...");
+    setProgressLabel(importType === "tickets" ? "Validando dados..." : "Processando importação...");
     setProgress(10);
 
     const progressInterval = setInterval(() => {
@@ -174,9 +180,11 @@ export function CsvImportWizard({ open, onClose, onImported }: CsvImportWizardPr
       const formData = new FormData();
       formData.append("file", file);
 
-      setProgressLabel("Importando chamados...");
+      setProgressLabel("Importando dados...");
 
-      const res = await fetch("/api/import/csv", {
+      const url = importType === "tickets" ? "/api/import/csv" : `/api/import/generic?type=${importType}`;
+
+      const res = await fetch(url, {
         method: "POST",
         body: formData,
       });
@@ -260,6 +268,20 @@ export function CsvImportWizard({ open, onClose, onImported }: CsvImportWizardPr
           {/* Step 1: File Selection */}
           {step === 1 && (
             <div className="space-y-6">
+              <div>
+                <label className="text-sm font-semibold mb-2 block text-foreground">Tipo de Importação</label>
+                <select
+                  value={importType}
+                  onChange={(e) => setImportType(e.target.value as any)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="tickets">Chamados</option>
+                  <option value="requesters">Funcionários (Solicitantes)</option>
+                  <option value="users">Usuários (Técnicos)</option>
+                  <option value="services">Serviços</option>
+                  <option value="emails">E-mails Recebidos</option>
+                </select>
+              </div>
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
@@ -338,10 +360,12 @@ export function CsvImportWizard({ open, onClose, onImported }: CsvImportWizardPr
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
+                  ) : importType === "tickets" ? (
                     <Eye className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
                   )}
-                  Analisar Arquivo
+                  {importType === "tickets" ? "Analisar Arquivo" : "Importar Agora"}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
