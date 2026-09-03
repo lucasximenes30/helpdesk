@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { motion, type Variants } from "framer-motion";
 import {
@@ -513,7 +514,7 @@ export default function TicketsManagementClient({
     {
       label: "Ações",
       key: "id",
-      className: "w-32 text-right",
+      className: "w-40 text-right pr-4",
       render: (item) => (
         <div className="flex items-center justify-end gap-1">
           {!item.technician && user?.id && (
@@ -654,7 +655,9 @@ export default function TicketsManagementClient({
             </div>
             <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Total Listado</span>
           </div>
-          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{totalItems}</div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">
+            {loading ? <Skeleton className="h-10 w-16" /> : totalItems}
+          </div>
         </div>
 
         <div 
@@ -670,7 +673,9 @@ export default function TicketsManagementClient({
             </div>
             <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Em Aberto</span>
           </div>
-          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{openCount}</div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">
+            {loading ? <Skeleton className="h-10 w-16" /> : openCount}
+          </div>
         </div>
 
         <div 
@@ -686,7 +691,9 @@ export default function TicketsManagementClient({
             </div>
             <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Resolvidos</span>
           </div>
-          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{resolvedCount}</div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">
+            {loading ? <Skeleton className="h-10 w-16" /> : resolvedCount}
+          </div>
         </div>
 
         <div 
@@ -702,7 +709,9 @@ export default function TicketsManagementClient({
             </div>
             <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Aguardando</span>
           </div>
-          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">{waitingCount}</div>
+          <div className="text-4xl font-display font-bold text-foreground mt-4 relative z-10">
+            {loading ? <Skeleton className="h-10 w-16" /> : waitingCount}
+          </div>
         </div>
       </motion.div>
 

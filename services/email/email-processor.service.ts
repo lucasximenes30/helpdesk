@@ -142,7 +142,7 @@ export async function checkAndProcessEmails() {
                   sectorId: firstSector.id,
                   serviceId: firstService.id,
                   origin: 'EMAIL',
-                  status: settings.defaultStatus as any || 'ABERTO',
+                  status: 'ABERTO', // Force ABERTO to increment "Em Aberto" queue properly
                   priority: settings.defaultPriority as any || 'MEDIA',
                   cc: ccAddresses,
                 },

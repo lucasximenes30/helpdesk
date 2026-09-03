@@ -71,7 +71,15 @@ export async function getTicketsPaginated(options: TicketFilterOptions) {
   }
 
   if (options.status && options.status !== "ALL") {
-    where.status = options.status;
+    if (options.status === "ABERTO") {
+      // Aberto inclui status ABERTO OU sem técnico associado
+      where.AND = [
+        ...(where.AND || []),
+        { OR: [{ status: "ABERTO" }, { technicianId: null }] }
+      ];
+    } else {
+      where.status = options.status;
+    }
   }
   if (options.serviceId && options.serviceId !== "ALL") {
     where.serviceId = options.serviceId;
@@ -104,17 +112,20 @@ export async function getTicketsPaginated(options: TicketFilterOptions) {
     const q = options.query.trim();
     const isNum = /^\d+$/.test(q);
 
-    // O Prisma usará automaticamente os índices GIN criados via pg_trgm
-    // para campos de texto (problem, description) quando processar modo insensitive (ILIKE).
-    where.OR = [
-      ...(isNum ? [{ ticketNumber: { equals: parseInt(q, 10) } }] : []),
-      { problem: { contains: q, mode: "insensitive" } },
-      { description: { contains: q, mode: "insensitive" } },
-      { requester: { name: { contains: q, mode: "insensitive" } } },
-      { requester: { email: { contains: q, mode: "insensitive" } } },
-      { sector: { name: { contains: q, mode: "insensitive" } } },
-      { service: { name: { contains: q, mode: "insensitive" } } },
-      { technician: { name: { contains: q, mode: "insensitive" } } },
+    where.AND = [
+      ...(where.AND || []),
+      {
+        OR: [
+          ...(isNum ? [{ ticketNumber: { equals: parseInt(q, 10) } }] : []),
+          { problem: { contains: q, mode: "insensitive" } },
+          { description: { contains: q, mode: "insensitive" } },
+          { requester: { name: { contains: q, mode: "insensitive" } } },
+          { requester: { email: { contains: q, mode: "insensitive" } } },
+          { sector: { name: { contains: q, mode: "insensitive" } } },
+          { service: { name: { contains: q, mode: "insensitive" } } },
+          { technician: { name: { contains: q, mode: "insensitive" } } },
+        ]
+      }
     ];
   }
 
@@ -133,10 +144,23 @@ export async function getTicketsPaginated(options: TicketFilterOptions) {
 
   const statusWhere = { ...where };
   delete statusWhere.status;
+  // If status logic was pushed to where.AND, we need to filter it out from statusWhere!
+  if (statusWhere.AND) {
+    statusWhere.AND = statusWhere.AND.filter((condition: any) => !condition.OR || !condition.OR.some((sub: any) => sub.status === "ABERTO"));
+    if (statusWhere.AND.length === 0) delete statusWhere.AND;
+  }
 
   const [total, openCount, resolvedCount, waitingCount, data] = await Promise.all([
     prisma.ticket.count({ where }),
-    prisma.ticket.count({ where: { ...statusWhere, status: "ABERTO" } }),
+    prisma.ticket.count({
+      where: {
+        ...statusWhere,
+        AND: [
+          ...(statusWhere.AND || []),
+          { OR: [{ status: "ABERTO" }, { technicianId: null }] }
+        ]
+      }
+    }),
     prisma.ticket.count({ where: { ...statusWhere, status: "RESOLVIDO" } }),
     prisma.ticket.count({ where: { ...statusWhere, status: "AGUARDANDO_USUARIO" } }),
     prisma.ticket.findMany({
